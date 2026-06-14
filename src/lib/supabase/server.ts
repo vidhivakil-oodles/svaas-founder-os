@@ -1,9 +1,15 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Server-side Supabase client (for server components / server actions)
-export function createServerClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  return createClient(supabaseUrl, supabaseAnonKey);
+const isConfigured = supabaseUrl && supabaseAnonKey && 
+  !supabaseAnonKey.includes('placeholder') &&
+  supabaseAnonKey.length > 30;
+
+export function createServerClient(): SupabaseClient | null {
+  if (!isConfigured) return null;
+  return createClient(supabaseUrl!, supabaseAnonKey!);
 }
+
+export { isConfigured as isSupabaseConfigured };
