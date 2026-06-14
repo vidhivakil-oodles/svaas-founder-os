@@ -1,4 +1,5 @@
 import { getStreamBySlug, getTasksForStream, getUpstreamDependencies, getDownstreamDependencies } from '@/services/venture-engine';
+import { MarkDoneButton, BlockTaskButton } from '@/components/shared/task-actions';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -139,9 +140,10 @@ export default async function StreamPage({ params }: { params: Promise<{ slug: s
                 </div>
               </div>
               {task.status === 'not_started' && !task.blockedReason && (
-                <button className="px-2 py-1 text-xs bg-zinc-800 hover:bg-zinc-700 rounded text-zinc-400 transition-colors">
-                  Done
-                </button>
+                <div className="flex gap-1 shrink-0">
+                  <MarkDoneButton taskId={task.id} />
+                  <BlockTaskButton taskId={task.id} />
+                </div>
               )}
             </div>
           ))}

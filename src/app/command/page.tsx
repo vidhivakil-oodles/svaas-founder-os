@@ -1,4 +1,5 @@
 import { getHighestLeverageAction, getBottlenecks, getOverdueDecisions, getWaitingOn, getVentureHealth, getRecoveryPlaybook } from '@/services/venture-engine';
+import { MarkDoneButton, BlockTaskButton } from '@/components/shared/task-actions';
 import { QuickActions } from '@/components/venture-radar/quick-actions';
 import Link from 'next/link';
 
@@ -46,15 +47,8 @@ export default function CommandCenterPage() {
             )}
           </div>
           <div className="flex gap-2 pt-2">
-            <button className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-md font-medium transition-colors">
-              ✓ Mark Done
-            </button>
-            <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm rounded-md transition-colors">
-              Blocked — Why?
-            </button>
-            <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm rounded-md transition-colors">
-              Defer + Reason
-            </button>
+            <MarkDoneButton taskId={leverageAction.id} size="md" />
+            <BlockTaskButton taskId={leverageAction.id} />
           </div>
         </div>
       )}

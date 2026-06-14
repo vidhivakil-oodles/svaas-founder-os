@@ -1,4 +1,5 @@
 import { getBottlenecks, getDayNumber } from '@/services/venture-engine';
+import { MarkDoneButton, BlockTaskButton } from '@/components/shared/task-actions';
 import Link from 'next/link';
 
 export default function BottlenecksPage() {
@@ -57,12 +58,8 @@ export default function BottlenecksPage() {
               )}
 
               <div className="flex gap-2 mt-3">
-                <button className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded font-medium">
-                  Mark Done
-                </button>
-                <button className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded">
-                  Blocked — Why?
-                </button>
+                <MarkDoneButton taskId={b.task.id} />
+                <BlockTaskButton taskId={b.task.id} />
               </div>
             </div>
           ))}

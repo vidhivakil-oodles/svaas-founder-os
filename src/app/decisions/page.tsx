@@ -1,4 +1,5 @@
 import { getDecisions } from '@/services/venture-engine';
+import { DecisionActions } from '@/components/shared/decision-actions';
 import Link from 'next/link';
 
 export default function DecisionsPage() {
@@ -102,21 +103,7 @@ export default function DecisionsPage() {
                     <span className="text-zinc-600"> — {decision.defaultRationale}</span>
                   )}
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  <button className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-md font-medium transition-colors">
-                    Accept Default: {decision.defaultOption}
-                  </button>
-                  {decision.options.filter(o => o.label !== decision.defaultOption).map(opt => (
-                    <button key={opt.label} className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm rounded-md transition-colors">
-                      {opt.label}
-                    </button>
-                  ))}
-                  {decision.deferCount < decision.maxDeferrals && (
-                    <button className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-500 text-sm rounded-md transition-colors">
-                      Defer 7 days
-                    </button>
-                  )}
-                </div>
+                <DecisionActions decision={decision} />
               </div>
             </div>
           );

@@ -10,10 +10,7 @@
  * - Recovery playbook
  */
 
-import { VENTURE_STREAMS, STREAM_DEPENDENCIES } from '@/lib/data/streams';
-import { DECISIONS } from '@/lib/data/decisions';
-import { MILESTONES } from '@/lib/data/milestones';
-import { TASKS, WAITING_ON } from '@/lib/data/tasks';
+import { getTasks, getDecisionsData, getStreamsData, getMilestonesData, getWaitingOnData, getStreamDepsData, getDailyEngagementData } from '@/lib/store';
 import type {
   VentureStream,
   StreamDependency,
@@ -53,7 +50,7 @@ function calculateDaysSinceMovement(lastMovementAt: string | null): number {
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
 
-function calculateNeglectLevel(stream: typeof VENTURE_STREAMS[0], tasks: Task[]): NeglectLevel {
+function calculateNeglectLevel(stream: ReturnType<typeof getStreamsData>[0], tasks: Task[]): NeglectLevel {
   const streamTasks = tasks.filter(t => t.streamId === stream.id);
   const hasActionable = streamTasks.some(t => t.status === 'not_started' && !t.blockedReason);
   const daysSince = calculateDaysSinceMovement(stream.lastMovementAt);
@@ -66,6 +63,8 @@ function calculateNeglectLevel(stream: typeof VENTURE_STREAMS[0], tasks: Task[])
 }
 
 export function getStreams(): VentureStream[] {
+  const VENTURE_STREAMS = getStreamsData();
+  const TASKS = getTasks();
   return VENTURE_STREAMS.map(s => {
     const streamTasks = TASKS.filter(t => t.streamId === s.id);
     const daysSince = calculateDaysSinceMovement(s.lastMovementAt);
@@ -87,18 +86,19 @@ export function getStreamBySlug(slug: string): VentureStream | undefined {
 }
 
 export function getStreamDependencies(): StreamDependency[] {
-  return STREAM_DEPENDENCIES;
+  return getStreamDepsData();
 }
 
 export function getUpstreamDependencies(streamSlug: string): StreamDependency[] {
-  return STREAM_DEPENDENCIES.filter(d => d.downstreamSlug === streamSlug);
+  return getStreamDepsData().filter(d => d.downstreamSlug === streamSlug);
 }
 
 export function getDownstreamDependencies(streamSlug: string): StreamDependency[] {
-  return STREAM_DEPENDENCIES.filter(d => d.upstreamSlug === streamSlug);
+  return getStreamDepsData().filter(d => d.upstreamSlug === streamSlug);
 }
 
 export function getRootCauseStreams(): string[] {
+  const STREAM_DEPENDENCIES = getStreamDepsData();
   // Streams that block 2+ other streams
   const downstreamCounts: Record<string, number> = {};
   STREAM_DEPENDENCIES.forEach(d => {
@@ -115,6 +115,7 @@ export function getRootCauseStreams(): string[] {
 
 export function calculateLeverageScore(task: Task): number {
   let score = 0;
+  const VENTURE_STREAMS = getStreamsData();
   const stream = VENTURE_STREAMS.find(s => s.id === task.streamId);
 
   // 1. Critical path (30%)
@@ -164,6 +165,7 @@ export function calculateLeverageScore(task: Task): number {
 }
 
 export function getHighestLeverageAction(): Task | null {
+  const TASKS = getTasks();
   const actionable = TASKS.filter(
     t => t.status === 'not_started' && !t.blockedReason
   );
@@ -199,6 +201,8 @@ export interface Bottleneck {
 
 export function getBottlenecks(): Bottleneck[] {
   const bottlenecks: Bottleneck[] = [];
+  const TASKS = getTasks();
+  const VENTURE_STREAMS = getStreamsData();
 
   // Find blocked tasks with high downstream impact
   const blocked = TASKS.filter(t => t.status === 'blocked' || 
@@ -295,6 +299,8 @@ export function getDreamProtection(): DreamProtectionScore {
 export function getRecoveryPlaybook(): RecoveryAction[] {
   const actions: RecoveryAction[] = [];
   const streams = getStreams();
+  const DECISIONS = getDecisionsData();
+  const TASKS = getTasks();
 
   // Find dormant/neglected streams and suggest lowest-effort recovery
   const dormantStreams = streams.filter(s => s.momentumScore === 0 && s.status !== 'grey');
@@ -382,6 +388,7 @@ export function getAttentionDistribution(): AttentionDistribution[] {
 
 export function getVentureHealth(): VentureHealth {
   const streams = getStreams();
+  const MILESTONES = getMilestonesData();
   const currentMilestone = MILESTONES.find(m => m.status === 'at_risk' || m.status === 'current') || MILESTONES[0];
 
   return {
@@ -406,10 +413,12 @@ export function getVentureHealth(): VentureHealth {
 // ============================================================
 
 export function getDecisions(): Decision[] {
-  return [...DECISIONS].sort((a, b) => b.impactScore - a.impactScore);
+  const DECISIONS = getDecisionsData();
+  return [...DECISIONS].filter(d => d.status === 'pending').sort((a, b) => b.impactScore - a.impactScore);
 }
 
 export function getOverdueDecisions(): Decision[] {
+  const DECISIONS = getDecisionsData();
   return DECISIONS.filter(d => {
     if (d.status !== 'pending' || !d.deadline) return false;
     return new Date(d.deadline) < TODAY;
@@ -421,6 +430,7 @@ export function getOverdueDecisions(): Decision[] {
 // ============================================================
 
 export function getMilestones(): Milestone[] {
+  const MILESTONES = getMilestonesData();
   const dayNumber = getDayNumber();
   return MILESTONES.map(m => ({
     ...m,
@@ -435,13 +445,13 @@ export function getMilestones(): Milestone[] {
 // ============================================================
 
 export function getTasksForStream(slug: string): Task[] {
-  return TASKS.filter(t => t.streamSlug === slug);
+  return getTasks().filter(t => t.streamSlug === slug);
 }
 
 export function getAllTasks(): Task[] {
-  return TASKS;
+  return getTasks();
 }
 
 export function getWaitingOn(): WaitingOn[] {
-  return WAITING_ON;
+  return getWaitingOnData();
 }
