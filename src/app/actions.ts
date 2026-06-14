@@ -13,7 +13,14 @@ import {
   completeWeeklyReview,
   updateMilestoneGate,
 } from '@/lib/store';
+import { runFullRecalculation } from '@/services/recalculation-engine';
 import { revalidatePath } from 'next/cache';
+
+function recalculateAndRevalidate(paths: string[]) {
+  runFullRecalculation();
+  paths.forEach(p => revalidatePath(p));
+  revalidatePath('/'); // Always revalidate radar
+}
 
 // ============================================================
 // TASK ACTIONS
@@ -22,36 +29,28 @@ import { revalidatePath } from 'next/cache';
 export async function actionMarkTaskDone(taskId: string) {
   const result = markTaskDone(taskId);
   if (!result) return { success: false, error: 'Task not found' };
-  revalidatePath('/');
-  revalidatePath('/command');
-  revalidatePath('/bottlenecks');
-  revalidatePath(`/stream/${result.streamSlug}`);
+  recalculateAndRevalidate(['/command', '/bottlenecks', `/stream/${result.streamSlug}`, '/milestones']);
   return { success: true, task: result };
 }
 
 export async function actionBlockTask(taskId: string, reason: string) {
   const result = blockTask(taskId, reason);
   if (!result) return { success: false, error: 'Task not found' };
-  revalidatePath('/');
-  revalidatePath('/command');
-  revalidatePath('/bottlenecks');
-  revalidatePath(`/stream/${result.streamSlug}`);
+  recalculateAndRevalidate(['/command', '/bottlenecks', `/stream/${result.streamSlug}`]);
   return { success: true, task: result };
 }
 
 export async function actionStartTask(taskId: string) {
   const result = startTask(taskId);
   if (!result) return { success: false, error: 'Task not found' };
-  revalidatePath('/');
-  revalidatePath(`/stream/${result.streamSlug}`);
+  recalculateAndRevalidate([`/stream/${result.streamSlug}`]);
   return { success: true, task: result };
 }
 
 export async function actionDeferTask(taskId: string) {
   const result = deferTask(taskId);
   if (!result) return { success: false, error: 'Task not found' };
-  revalidatePath('/');
-  revalidatePath(`/stream/${result.streamSlug}`);
+  recalculateAndRevalidate([`/stream/${result.streamSlug}`]);
   return { success: true, task: result };
 }
 
@@ -62,27 +61,21 @@ export async function actionDeferTask(taskId: string) {
 export async function actionMakeDecision(decisionId: string, chosenOption: string, rationale?: string) {
   const result = makeDecision(decisionId, chosenOption, rationale);
   if (!result) return { success: false, error: 'Decision not found' };
-  revalidatePath('/');
-  revalidatePath('/command');
-  revalidatePath('/decisions');
+  recalculateAndRevalidate(['/command', '/decisions', '/dependencies']);
   return { success: true, decision: result };
 }
 
 export async function actionAcceptDefault(decisionId: string) {
   const result = acceptDefault(decisionId);
   if (!result) return { success: false, error: 'Decision not found or no default' };
-  revalidatePath('/');
-  revalidatePath('/command');
-  revalidatePath('/decisions');
+  recalculateAndRevalidate(['/command', '/decisions', '/dependencies']);
   return { success: true, decision: result };
 }
 
 export async function actionDeferDecision(decisionId: string) {
   const result = deferDecision(decisionId);
   if (!result) return { success: false, error: 'Decision not found or max deferrals reached' };
-  revalidatePath('/');
-  revalidatePath('/command');
-  revalidatePath('/decisions');
+  recalculateAndRevalidate(['/command', '/decisions']);
   return { success: true, decision: result };
 }
 
@@ -93,16 +86,14 @@ export async function actionDeferDecision(decisionId: string) {
 export async function actionMarkReceived(waitingOnId: string) {
   const result = markWaitingOnReceived(waitingOnId);
   if (!result) return { success: false, error: 'Item not found' };
-  revalidatePath('/');
-  revalidatePath('/command');
+  recalculateAndRevalidate(['/command']);
   return { success: true };
 }
 
 export async function actionMarkContacted(waitingOnId: string) {
   const result = updateWaitingOnContacted(waitingOnId);
   if (!result) return { success: false, error: 'Item not found' };
-  revalidatePath('/');
-  revalidatePath('/command');
+  recalculateAndRevalidate(['/command']);
   return { success: true };
 }
 
@@ -112,8 +103,7 @@ export async function actionMarkContacted(waitingOnId: string) {
 
 export async function actionCompleteReview(weekNumber: number, momentumScore: number) {
   const result = completeWeeklyReview(weekNumber, momentumScore);
-  revalidatePath('/');
-  revalidatePath('/review');
+  recalculateAndRevalidate(['/review']);
   return { success: true, review: result };
 }
 
@@ -124,7 +114,6 @@ export async function actionCompleteReview(weekNumber: number, momentumScore: nu
 export async function actionUpdateMilestoneGate(milestoneId: string, gateIndex: number, met: boolean) {
   const result = updateMilestoneGate(milestoneId, gateIndex, met);
   if (!result) return { success: false, error: 'Milestone or gate not found' };
-  revalidatePath('/');
-  revalidatePath('/milestones');
+  recalculateAndRevalidate(['/milestones']);
   return { success: true, milestone: result };
 }

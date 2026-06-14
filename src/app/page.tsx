@@ -101,7 +101,7 @@ export default function HomePage() {
       )}
 
       {/* Navigation */}
-      <nav className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-4 border-t border-zinc-800">
+      <nav className="grid grid-cols-2 md:grid-cols-5 gap-2 pt-4 border-t border-zinc-800">
         <Link href="/command" className="text-center py-3 px-4 rounded-lg border border-zinc-800 hover:border-zinc-600 transition-colors text-sm text-zinc-400 hover:text-zinc-200">
           Command Center
         </Link>
@@ -113,6 +113,9 @@ export default function HomePage() {
         </Link>
         <Link href="/review" className="text-center py-3 px-4 rounded-lg border border-zinc-800 hover:border-zinc-600 transition-colors text-sm text-zinc-400 hover:text-zinc-200">
           Weekly Review
+        </Link>
+        <Link href="/admin" className="text-center py-3 px-4 rounded-lg border border-zinc-800 hover:border-zinc-600 transition-colors text-sm text-zinc-400 hover:text-zinc-200">
+          Admin
         </Link>
       </nav>
     </div>
