@@ -4,10 +4,7 @@ import { useAppState } from '@/lib/state-provider';
 import Link from 'next/link';
 import { useState } from 'react';
 
-function getDayNumber() {
-  const launchStart = new Date('2026-04-18');
-  return Math.max(1, Math.floor((Date.now() - launchStart.getTime()) / (1000 * 60 * 60 * 24)));
-}
+import { getDayNumber } from '@/lib/venture-config';
 
 export default function BottlenecksPage() {
   const { state, markTaskDone, blockTask } = useAppState();

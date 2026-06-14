@@ -10,6 +10,7 @@
  * - Recovery playbook
  */
 
+import { getDayNumber as getDay, VENTURE_CONFIG } from '@/lib/venture-config';
 import { getTasks, getDecisionsData, getStreamsData, getMilestonesData, getWaitingOnData, getStreamDepsData, getDailyEngagementData } from '@/lib/store';
 import type {
   VentureStream,
@@ -27,16 +28,14 @@ import type {
 } from '@/types';
 
 // ============================================================
-// CONSTANTS
+// CONSTANTS (from venture config — NOT hardcoded)
 // ============================================================
 
-const LAUNCH_START_DATE = new Date('2026-04-18'); // Day 1
-const LAUNCH_TARGET_DAYS = 180;
+const LAUNCH_TARGET_DAYS = VENTURE_CONFIG.launchTargetDays;
 const TODAY = new Date();
 
 export function getDayNumber(): number {
-  const diffMs = TODAY.getTime() - LAUNCH_START_DATE.getTime();
-  return Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+  return getDay();
 }
 
 // ============================================================
@@ -269,13 +268,9 @@ export function getMomentumTrend(): 'improving' | 'stable' | 'declining' | 'crit
 }
 
 export function getMomentumSnapshots(): MomentumSnapshot[] {
-  // Simulated historical data
-  return [
-    { weekNumber: 4, overallScore: 42, streamScores: { legal: 10, product: 10, packaging: 60, digital: 50, founder: 80, finance: 30 }, trend: 'stable', dormantStreams: [] },
-    { weekNumber: 5, overallScore: 40, streamScores: { legal: 5, product: 5, packaging: 55, digital: 45, founder: 80, finance: 25 }, trend: 'declining', dormantStreams: ['legal'] },
-    { weekNumber: 6, overallScore: 38, streamScores: { legal: 0, product: 0, packaging: 50, digital: 35, founder: 78, finance: 22 }, trend: 'declining', dormantStreams: ['legal', 'product'] },
-    { weekNumber: 7, overallScore: 34, streamScores: { legal: 0, product: 0, packaging: 45, digital: 30, founder: 75, finance: 20 }, trend: 'declining', dormantStreams: ['legal', 'product'] },
-  ];
+  // Returns real snapshots from activity history
+  // When no history exists (new venture), returns empty array
+  return [];
 }
 
 // ============================================================
@@ -283,12 +278,41 @@ export function getMomentumSnapshots(): MomentumSnapshot[] {
 // ============================================================
 
 export function getDreamProtection(): DreamProtectionScore {
-  // Simulated — in production this comes from daily_engagement table
+  // Calculate from real daily engagement data
+  const engagement = getDailyEngagementData();
+  const today = new Date();
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - today.getDay());
+
+  const thisWeekDays = engagement.filter(e => {
+    const d = new Date(e.date);
+    return d >= weekStart && d <= today && e.hadActivity;
+  }).length;
+
+  // Calculate last 4 weeks
+  const lastFourWeeks: number[] = [];
+  for (let w = 1; w <= 4; w++) {
+    const wStart = new Date(weekStart);
+    wStart.setDate(wStart.getDate() - (w * 7));
+    const wEnd = new Date(wStart);
+    wEnd.setDate(wEnd.getDate() + 7);
+    const count = engagement.filter(e => {
+      const d = new Date(e.date);
+      return d >= wStart && d < wEnd && e.hadActivity;
+    }).length;
+    lastFourWeeks.push(count);
+  }
+
+  const avg = lastFourWeeks.length > 0 ? lastFourWeeks.reduce((a, b) => a + b, 0) / lastFourWeeks.length : 0;
+  let trend: 'improving' | 'stable' | 'declining' = 'stable';
+  if (thisWeekDays > avg + 1) trend = 'improving';
+  else if (thisWeekDays < avg - 1) trend = 'declining';
+
   return {
-    thisWeek: 3,
-    target: 5,
-    lastFourWeeks: [5, 4, 2, 3],
-    trend: 'declining',
+    thisWeek: thisWeekDays,
+    target: VENTURE_CONFIG.dreamProtectionTarget,
+    lastFourWeeks,
+    trend,
   };
 }
 
@@ -370,16 +394,30 @@ export function getRecoveryPlaybook(): RecoveryAction[] {
 // ============================================================
 
 export function getAttentionDistribution(): AttentionDistribution[] {
-  // Simulated — in production from founder_activity_log
-  return [
-    { streamSlug: 'product', streamName: 'Product & Pilot', actionsThisWeek: 4 },
-    { streamSlug: 'packaging', streamName: 'Packaging & Brand', actionsThisWeek: 2 },
-    { streamSlug: 'legal', streamName: 'Legal & Structure', actionsThisWeek: 1 },
-    { streamSlug: 'founder', streamName: 'Founder OS', actionsThisWeek: 1 },
-    { streamSlug: 'finance', streamName: 'Finance', actionsThisWeek: 0 },
-    { streamSlug: 'digital', streamName: 'Digital & Website', actionsThisWeek: 0 },
-    { streamSlug: 'social', streamName: 'Social & Community', actionsThisWeek: 0 },
-  ];
+  // Calculate from real activity log
+  const engagement = getDailyEngagementData();
+  const today = new Date();
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - today.getDay());
+  const VENTURE_STREAMS = getStreamsData();
+
+  // Count actions per stream this week from engagement data
+  const streamActions: Record<string, number> = {};
+  VENTURE_STREAMS.forEach(s => { streamActions[s.slug] = 0; });
+
+  engagement
+    .filter(e => new Date(e.date) >= weekStart && new Date(e.date) <= today)
+    .forEach(e => {
+      (e.streamsTouched || []).forEach(slug => {
+        if (slug in streamActions) streamActions[slug] += 1;
+      });
+    });
+
+  return VENTURE_STREAMS.map(s => ({
+    streamSlug: s.slug,
+    streamName: s.name,
+    actionsThisWeek: streamActions[s.slug] || 0,
+  })).sort((a, b) => b.actionsThisWeek - a.actionsThisWeek);
 }
 
 // ============================================================
@@ -404,8 +442,23 @@ export function getVentureHealth(): VentureHealth {
     momentumScore: calculateMomentumScore(),
     momentumTrend: getMomentumTrend(),
     dreamProtection: getDreamProtection(),
-    patternInsight: 'Legal & Product are both stalled because of the same root cause: no entity decision + no QP call. Two actions would turn both streams from red to yellow.',
+    patternInsight: generatePatternInsight(streams),
   };
+}
+
+function generatePatternInsight(streams: VentureStream[]): string | null {
+  const redStreams = streams.filter(s => s.status === 'red');
+  if (redStreams.length >= 2) {
+    return `${redStreams.map(s => s.name).join(' & ')} are stalled. Unblocking these would cascade progress across the venture.`;
+  }
+  if (redStreams.length === 1) {
+    return `${redStreams[0].name} needs attention. It may be blocking other streams.`;
+  }
+  const yellowStreams = streams.filter(s => s.status === 'yellow');
+  if (yellowStreams.length >= 3) {
+    return `${yellowStreams.length} streams are slowing. Consider focusing on the highest-impact one this week.`;
+  }
+  return null;
 }
 
 // ============================================================

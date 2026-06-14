@@ -10,11 +10,7 @@ const STATUS_STYLES = {
   grey: { dot: 'bg-zinc-600', border: 'border-zinc-800', bg: 'bg-zinc-900/30' },
 };
 
-function getDayNumber() {
-  const launchStart = new Date('2026-04-18');
-  const today = new Date();
-  return Math.max(1, Math.floor((today.getTime() - launchStart.getTime()) / (1000 * 60 * 60 * 24)));
-}
+import { getDayNumber, getLaunchProgress, VENTURE_CONFIG } from '@/lib/venture-config';
 
 function getDaysSince(dateStr: string | null): number {
   if (!dateStr) return 999;
@@ -40,8 +36,8 @@ export default function HomePage() {
   }
 
   const dayNumber = getDayNumber();
-  const totalDays = 180;
-  const progress = Math.min(Math.round((dayNumber / totalDays) * 100), 100);
+  const totalDays = VENTURE_CONFIG.launchTargetDays;
+  const progress = getLaunchProgress();
 
   // Calculate stream health
   const streamsWithHealth = state.streams.map(s => {
@@ -149,6 +145,9 @@ export default function HomePage() {
                       <span className={`text-xs ${stream.daysSinceMovement > 21 ? 'text-red-400' : stream.daysSinceMovement > 14 ? 'text-amber-400' : 'text-zinc-500'}`}>
                         {stream.daysSinceMovement}d ago
                       </span>
+                    )}
+                    {stream.daysSinceMovement >= 999 && stream.status !== 'grey' && (
+                      <span className="text-xs text-zinc-600">No activity yet</span>
                     )}
                   </div>
                   <div className="space-y-1.5 text-xs">

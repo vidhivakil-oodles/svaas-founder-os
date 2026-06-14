@@ -13,6 +13,7 @@ import {
   getMilestonesData,
   getDailyEngagementData,
 } from '@/lib/store';
+import { getDayNumber } from '@/lib/venture-config';
 import type { Task, NeglectLevel } from '@/types';
 
 // ============================================================
@@ -131,7 +132,7 @@ function determineBottleneck(tasks: Task[]): string | null {
   }
 
   // Check for overdue critical tasks
-  const dayNumber = Math.floor((Date.now() - new Date('2026-04-18').getTime()) / (1000 * 60 * 60 * 24));
+  const dayNumber = getDayNumber();
   const overdue = tasks.filter(
     t => t.status === 'not_started' && t.priority === 'CRITICAL' && t.dayRangeEnd && dayNumber > t.dayRangeEnd
   );

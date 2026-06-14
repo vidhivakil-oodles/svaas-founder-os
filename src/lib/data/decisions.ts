@@ -12,7 +12,7 @@ export const DECISIONS: Decision[] = [
     ],
     defaultOption: 'LLP',
     defaultRationale: 'Recommended by Execution Engine — cheapest, protects IP, converts to Pvt Ltd later if needed. No immediate fundraising planned.',
-    deadline: '2026-04-25',
+    deadline: '2026-06-08',
     status: 'pending',
     decisionMade: null,
     rationale: null,

@@ -36,8 +36,8 @@ export const VENTURE_STREAMS: Omit<VentureStream, 'taskCount' | 'tasksDone' | 't
     currentBottleneck: 'Labels blocked by MRP decision + licence number',
     waitingOn: 'MRP decision (due Day 56), GS1 barcode registration',
     nextMilestone: 'Label content finalized',
-    lastMovementAt: '2026-05-23T00:00:00Z',
-    momentumScore: 45,
+    lastMovementAt: null,
+    momentumScore: 0,
     departments: ['PACKAGING', 'BRAND'],
   },
   {
@@ -49,8 +49,8 @@ export const VENTURE_STREAMS: Omit<VentureStream, 'taskCount' | 'tasksDone' | 't
     currentBottleneck: 'Website build waiting on brand identity lock',
     waitingOn: 'Photography (needs product samples first)',
     nextMilestone: 'Shopify store live (not public)',
-    lastMovementAt: '2026-05-15T00:00:00Z',
-    momentumScore: 30,
+    lastMovementAt: null,
+    momentumScore: 0,
     departments: ['DIGITAL', 'MARKETING'],
   },
   {
@@ -75,8 +75,8 @@ export const VENTURE_STREAMS: Omit<VentureStream, 'taskCount' | 'tasksDone' | 't
     currentBottleneck: 'Need to establish weekly review cadence',
     waitingOn: null,
     nextMilestone: 'First weekly review completed',
-    lastMovementAt: '2026-06-01T00:00:00Z',
-    momentumScore: 75,
+    lastMovementAt: null,
+    momentumScore: 0,
     departments: ['FOUNDER', 'OODLES'],
   },
   {
@@ -88,8 +88,8 @@ export const VENTURE_STREAMS: Omit<VentureStream, 'taskCount' | 'tasksDone' | 't
     currentBottleneck: 'Bank account needs COI (needs entity formed)',
     waitingOn: 'LLP formation to complete',
     nextMilestone: 'Bank account open + Zoho Books setup',
-    lastMovementAt: '2026-05-05T00:00:00Z',
-    momentumScore: 20,
+    lastMovementAt: null,
+    momentumScore: 0,
     departments: ['FINANCE'],
   },
 ];
