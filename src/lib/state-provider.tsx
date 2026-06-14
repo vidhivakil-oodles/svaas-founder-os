@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { loadState, saveState, AppState, ActivityEntry, DailyEntry, ReviewEntry } from './persistence';
+import { isSupabaseReady, getSupabaseClient } from './supabase/db';
 import type { Task, Decision, Milestone, WaitingOn } from '@/types';
 
 interface StateContextValue {
