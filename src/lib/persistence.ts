@@ -1,13 +1,9 @@
 /**
  * SVAAS Venture OS — Persistence Layer
  * 
- * Strategy:
- * 1. In-memory state (always available, fast)
- * 2. localStorage backup (client-side persistence across refreshes)
- * 3. Supabase (production persistence when configured)
- * 
- * The app starts from seed data, then hydrates from localStorage if available.
- * When Supabase is configured, it becomes the source of truth.
+ * DATA VERSIONING:
+ * When source data changes (new task import, schema change), increment DATA_VERSION.
+ * On load: if stored version != current version → clear and reload from source.
  */
 
 import { TASKS, WAITING_ON } from '@/lib/data/tasks';
@@ -16,9 +12,19 @@ import { DECISIONS } from '@/lib/data/decisions';
 import { MILESTONES } from '@/lib/data/milestones';
 import type { Task, Decision, Milestone, WaitingOn, StreamDependency } from '@/types';
 
+// ============================================================
+// DATA VERSION — INCREMENT WHEN SOURCE DATA CHANGES
+// v1 = original 22 seed tasks
+// v2 = full 358 task import from Google Sheets (June 15, 2026)
+// ============================================================
+export const DATA_VERSION = 2;
+
 const STORAGE_KEY = 'svaas-os-state';
 
 export interface AppState {
+  dataVersion: number;
+  dataSource: 'seed' | 'imported' | 'supabase';
+  lastImportDate: string | null;
   tasks: Task[];
   decisions: Decision[];
   streams: typeof VENTURE_STREAMS;
@@ -55,6 +61,9 @@ export interface ReviewEntry {
 
 function getDefaultState(): AppState {
   return {
+    dataVersion: DATA_VERSION,
+    dataSource: 'seed',
+    lastImportDate: new Date().toISOString(),
     tasks: JSON.parse(JSON.stringify(TASKS)),
     decisions: JSON.parse(JSON.stringify(DECISIONS)),
     streams: JSON.parse(JSON.stringify(VENTURE_STREAMS)),
@@ -70,7 +79,6 @@ function getDefaultState(): AppState {
 
 export function loadState(): AppState {
   if (typeof window === 'undefined') {
-    // Server-side: always return default (will hydrate on client)
     return getDefaultState();
   }
 
@@ -78,30 +86,48 @@ export function loadState(): AppState {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored) as AppState;
-      // Validate it has the expected shape
+
+      // VERSION CHECK: stale data → clear and reload from source
+      if (!parsed.dataVersion || parsed.dataVersion !== DATA_VERSION) {
+        console.warn(`[SVAAS OS] Data version mismatch: stored=${parsed.dataVersion}, current=${DATA_VERSION}. Clearing stale data.`);
+        localStorage.removeItem(STORAGE_KEY);
+        const fresh = getDefaultState();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+        return fresh;
+      }
+
+      // Validate shape
       if (parsed.tasks && parsed.decisions && parsed.streams) {
         return parsed;
       }
     }
   } catch (e) {
-    console.warn('Failed to load state from localStorage:', e);
+    console.warn('[SVAAS OS] Failed to load state from localStorage:', e);
   }
 
-  return getDefaultState();
+  const fresh = getDefaultState();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+  return fresh;
 }
 
 export function saveState(state: AppState): void {
   if (typeof window === 'undefined') return;
-
   try {
+    state.dataVersion = DATA_VERSION;
     state.lastUpdated = new Date().toISOString();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
-    console.warn('Failed to save state to localStorage:', e);
+    console.warn('[SVAAS OS] Failed to save state:', e);
   }
 }
 
 export function clearState(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(STORAGE_KEY);
+}
+
+export function getStorageSize(): number {
+  if (typeof window === 'undefined') return 0;
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return stored ? new Blob([stored]).size : 0;
 }
