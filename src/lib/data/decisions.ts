@@ -17,7 +17,7 @@ export const DECISIONS: Decision[] = [
     decisionMade: null,
     rationale: null,
     decidedAt: null,
-    deferCount: 2,
+    deferCount: 0,
     maxDeferrals: 2,
     blocksTasks: [],
     impactScore: 87,
