@@ -1,6 +1,7 @@
 'use client';
 
 import { useAppState } from '@/lib/state-provider';
+import { getDayNumber, getLaunchProgress, VENTURE_CONFIG } from '@/lib/venture-config';
 import Link from 'next/link';
 
 const STATUS_STYLES = {
@@ -9,8 +10,6 @@ const STATUS_STYLES = {
   red: { dot: 'bg-red-500', border: 'border-red-900/50', bg: 'bg-red-950/10' },
   grey: { dot: 'bg-zinc-600', border: 'border-zinc-800', bg: 'bg-zinc-900/30' },
 };
-
-import { getDayNumber, getLaunchProgress, VENTURE_CONFIG } from '@/lib/venture-config';
 
 function getDaysSince(dateStr: string | null): number {
   if (!dateStr) return 999;
@@ -81,6 +80,17 @@ export default function HomePage() {
 
   return (
     <div className="space-y-6">
+      {/* TODAY link - primary CTA */}
+      <Link href="/today" className="block border-2 border-emerald-800/50 bg-emerald-950/20 rounded-xl p-4 hover:border-emerald-700/50 transition-colors">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-emerald-400 font-medium text-sm">→ Open Today&apos;s Brief</p>
+            <p className="text-zinc-500 text-xs mt-0.5">Day {dayNumber} &bull; Your top 3 actions &bull; What matters now</p>
+          </div>
+          <span className="text-emerald-500 text-2xl">→</span>
+        </div>
+      </Link>
+
       {/* Header */}
       <header className="flex items-start justify-between">
         <div>

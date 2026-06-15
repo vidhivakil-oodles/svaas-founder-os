@@ -17,7 +17,7 @@ import type { Task, Decision, Milestone, WaitingOn, StreamDependency } from '@/t
 // v1 = original 22 seed tasks
 // v2 = full 358 task import from Google Sheets (June 15, 2026)
 // ============================================================
-export const DATA_VERSION = 2;
+export const DATA_VERSION = 3;
 
 const STORAGE_KEY = 'svaas-os-state';
 

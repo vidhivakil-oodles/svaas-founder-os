@@ -34,7 +34,7 @@ export function getDayNumber(): number {
   const today = new Date();
   const diffMs = today.getTime() - start.getTime();
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  return Math.max(0, days);
+  return Math.max(1, days + 1); // Inclusive: June 1 = Day 1
 }
 
 /**
