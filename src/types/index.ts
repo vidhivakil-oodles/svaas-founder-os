@@ -3,7 +3,7 @@
 // ============================================================
 
 export type StreamStatus = 'green' | 'yellow' | 'red' | 'grey';
-export type TaskStatus = 'not_started' | 'in_progress' | 'done' | 'blocked' | 'deferred';
+export type TaskStatus = 'not_started' | 'committed_today' | 'in_progress' | 'waiting_on' | 'blocked' | 'deferred' | 'done';
 export type TaskPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 export type DecisionStatus = 'pending' | 'decided' | 'defaulted' | 'deferred';
 export type DependencyType = 'hard_block' | 'soft_block' | 'enables';
@@ -65,6 +65,15 @@ export interface Task {
   status: TaskStatus;
   blockedReason: string | null;
   completedAt: string | null;
+  // Waiting On metadata
+  waitingOnPerson?: string | null;
+  waitingOnDate?: string | null;
+  waitingOnNotes?: string | null;
+  // Deferred metadata
+  deferredReason?: string | null;
+  deferredReviewDate?: string | null;
+  // Committed
+  committedAt?: string | null;
   // Computed
   leverageScore?: number;
   downstreamCount?: number;

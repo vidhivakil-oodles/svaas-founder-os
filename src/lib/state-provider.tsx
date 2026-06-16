@@ -12,6 +12,9 @@ interface StateContextValue {
   markTaskDone: (taskId: string) => void;
   blockTask: (taskId: string, reason: string) => void;
   startTask: (taskId: string) => void;
+  commitTask: (taskId: string) => void;
+  waitingOnTask: (taskId: string, person: string, date: string, notes?: string) => void;
+  deferTask: (taskId: string, reason: string, reviewDate: string) => void;
   // Decision mutations
   acceptDecisionDefault: (decisionId: string) => void;
   makeDecision: (decisionId: string, option: string) => void;
@@ -133,6 +136,42 @@ export function StateProvider({ children }: { children: ReactNode }) {
     }
   }, [state.tasks, logActivity, updateStreamMovement]);
 
+  // Task: Commit Today
+  const commitTask = useCallback((taskId: string) => {
+    setState(prev => ({
+      ...prev,
+      tasks: prev.tasks.map(t =>
+        t.id === taskId ? { ...t, status: 'committed_today' as const, committedAt: new Date().toISOString() } : t
+      ),
+    }));
+    const task = state.tasks.find(t => t.id === taskId);
+    if (task) logActivity(task.streamId, 'task_status_changed', taskId);
+  }, [state.tasks, logActivity]);
+
+  // Task: Waiting On
+  const waitingOnTask = useCallback((taskId: string, person: string, date: string, notes?: string) => {
+    setState(prev => ({
+      ...prev,
+      tasks: prev.tasks.map(t =>
+        t.id === taskId ? { ...t, status: 'waiting_on' as const, waitingOnPerson: person, waitingOnDate: date, waitingOnNotes: notes || null } : t
+      ),
+    }));
+    const task = state.tasks.find(t => t.id === taskId);
+    if (task) logActivity(task.streamId, 'task_status_changed', taskId);
+  }, [state.tasks, logActivity]);
+
+  // Task: Defer
+  const deferTask = useCallback((taskId: string, reason: string, reviewDate: string) => {
+    setState(prev => ({
+      ...prev,
+      tasks: prev.tasks.map(t =>
+        t.id === taskId ? { ...t, status: 'deferred' as const, deferredReason: reason, deferredReviewDate: reviewDate } : t
+      ),
+    }));
+    const task = state.tasks.find(t => t.id === taskId);
+    if (task) logActivity(task.streamId, 'task_status_changed', taskId);
+  }, [state.tasks, logActivity]);
+
   // Decision: Accept Default
   const acceptDecisionDefault = useCallback((decisionId: string) => {
     setState(prev => ({
@@ -209,6 +248,9 @@ export function StateProvider({ children }: { children: ReactNode }) {
       markTaskDone,
       blockTask,
       startTask,
+      commitTask,
+      waitingOnTask,
+      deferTask,
       acceptDecisionDefault,
       makeDecision: makeDecisionFn,
       deferDecision: deferDecisionFn,
