@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { loadState, saveState, AppState, ActivityEntry, DailyEntry, ReviewEntry, DATA_VERSION } from './persistence';
-import { isSupabaseReady, getSupabaseClient } from './supabase/db';
+import { useToast } from './toast-provider';
 import type { Task, Decision, Milestone, WaitingOn } from '@/types';
 
 interface StateContextValue {
@@ -23,6 +23,10 @@ interface StateContextValue {
   markWaitingOnReceived: (id: string) => void;
   // Milestone mutations
   toggleMilestoneGate: (milestoneId: string, gateIndex: number) => void;
+  // Journal
+  addManualNote: (note: string, streamSlug?: string) => void;
+  // Cancel
+  cancelTask: (taskId: string, reason?: string) => void;
 }
 
 const StateContext = createContext<StateContextValue | null>(null);
@@ -30,6 +34,7 @@ const StateContext = createContext<StateContextValue | null>(null);
 export function StateProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(loadState());
   const [isLoaded, setIsLoaded] = useState(false);
+  const { showToast } = useToast();
 
   // Hydrate from localStorage on mount
   useEffect(() => {
@@ -90,6 +95,23 @@ export function StateProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  // Helper: add journal entry (will be used by Venture Journal)
+  const addJournalEntry = useCallback((type: string, title: string, taskId?: string, streamId?: string, metadata?: Record<string, any>) => {
+    const entry = {
+      id: `journal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      type,
+      title,
+      taskId: taskId || null,
+      streamId: streamId || null,
+      metadata: metadata || {},
+      createdAt: new Date().toISOString(),
+    };
+    setState(prev => ({
+      ...prev,
+      journal: [...(prev.journal || []), entry],
+    }));
+  }, []);
+
   // Task: Mark Done
   const markTaskDone = useCallback((taskId: string) => {
     setState(prev => {
@@ -106,8 +128,10 @@ export function StateProvider({ children }: { children: ReactNode }) {
     if (task) {
       logActivity(task.streamId, 'task_completed', taskId);
       updateStreamMovement(task.streamId);
+      addJournalEntry('task_completed', task.title, taskId, task.streamId);
+      showToast(`Done: ${task.title.slice(0, 50)}`, 'success');
     }
-  }, [state.tasks, logActivity, updateStreamMovement]);
+  }, [state.tasks, logActivity, updateStreamMovement, addJournalEntry, showToast]);
 
   // Task: Block
   const blockTask = useCallback((taskId: string, reason: string) => {
@@ -118,8 +142,12 @@ export function StateProvider({ children }: { children: ReactNode }) {
       ),
     }));
     const task = state.tasks.find(t => t.id === taskId);
-    if (task) logActivity(task.streamId, 'task_status_changed', taskId);
-  }, [state.tasks, logActivity]);
+    if (task) {
+      logActivity(task.streamId, 'task_status_changed', taskId);
+      addJournalEntry('task_blocked', `${task.title} — ${reason}`, taskId, task.streamId, { reason });
+      showToast(`Blocked: ${task.title.slice(0, 40)}`, 'info');
+    }
+  }, [state.tasks, logActivity, addJournalEntry, showToast]);
 
   // Task: Start
   const startTask = useCallback((taskId: string) => {
@@ -133,8 +161,10 @@ export function StateProvider({ children }: { children: ReactNode }) {
     if (task) {
       logActivity(task.streamId, 'task_status_changed', taskId);
       updateStreamMovement(task.streamId);
+      addJournalEntry('task_started', task.title, taskId, task.streamId);
+      showToast(`Started: ${task.title.slice(0, 50)}`, 'success');
     }
-  }, [state.tasks, logActivity, updateStreamMovement]);
+  }, [state.tasks, logActivity, updateStreamMovement, addJournalEntry, showToast]);
 
   // Task: Commit Today
   const commitTask = useCallback((taskId: string) => {
@@ -145,8 +175,12 @@ export function StateProvider({ children }: { children: ReactNode }) {
       ),
     }));
     const task = state.tasks.find(t => t.id === taskId);
-    if (task) logActivity(task.streamId, 'task_status_changed', taskId);
-  }, [state.tasks, logActivity]);
+    if (task) {
+      logActivity(task.streamId, 'task_status_changed', taskId);
+      addJournalEntry('task_committed', task.title, taskId, task.streamId);
+      showToast(`Committed today: ${task.title.slice(0, 40)}`, 'success');
+    }
+  }, [state.tasks, logActivity, addJournalEntry, showToast]);
 
   // Task: Waiting On
   const waitingOnTask = useCallback((taskId: string, person: string, date: string, notes?: string) => {
@@ -157,8 +191,12 @@ export function StateProvider({ children }: { children: ReactNode }) {
       ),
     }));
     const task = state.tasks.find(t => t.id === taskId);
-    if (task) logActivity(task.streamId, 'task_status_changed', taskId);
-  }, [state.tasks, logActivity]);
+    if (task) {
+      logActivity(task.streamId, 'task_status_changed', taskId);
+      addJournalEntry('task_waiting_on', `${task.title} — waiting on ${person}`, taskId, task.streamId, { person, date, notes });
+      showToast(`Waiting on ${person}: ${task.title.slice(0, 35)}`, 'info');
+    }
+  }, [state.tasks, logActivity, addJournalEntry, showToast]);
 
   // Task: Defer
   const deferTask = useCallback((taskId: string, reason: string, reviewDate: string) => {
@@ -169,11 +207,16 @@ export function StateProvider({ children }: { children: ReactNode }) {
       ),
     }));
     const task = state.tasks.find(t => t.id === taskId);
-    if (task) logActivity(task.streamId, 'task_status_changed', taskId);
-  }, [state.tasks, logActivity]);
+    if (task) {
+      logActivity(task.streamId, 'task_status_changed', taskId);
+      addJournalEntry('task_deferred', `${task.title} — ${reason}`, taskId, task.streamId, { reason, reviewDate });
+      showToast(`Deferred: ${task.title.slice(0, 40)}${reviewDate ? ` (review ${reviewDate})` : ''}`, 'info');
+    }
+  }, [state.tasks, logActivity, addJournalEntry, showToast]);
 
   // Decision: Accept Default
   const acceptDecisionDefault = useCallback((decisionId: string) => {
+    const decision = state.decisions.find(d => d.id === decisionId);
     setState(prev => ({
       ...prev,
       decisions: prev.decisions.map(d =>
@@ -182,11 +225,16 @@ export function StateProvider({ children }: { children: ReactNode }) {
           : d
       ),
     }));
-    logActivity(null, 'decision_made', decisionId);
-  }, [logActivity]);
+    if (decision) {
+      logActivity(null, 'decision_made', decisionId);
+      addJournalEntry('decision_made', `${decision.title} → ${decision.defaultOption}`, undefined, undefined, { option: decision.defaultOption, method: 'accepted_default' });
+      showToast(`Decided: ${decision.title.slice(0, 40)}`, 'success');
+    }
+  }, [state.decisions, logActivity, addJournalEntry, showToast]);
 
   // Decision: Make specific choice
   const makeDecisionFn = useCallback((decisionId: string, option: string) => {
+    const decision = state.decisions.find(d => d.id === decisionId);
     setState(prev => ({
       ...prev,
       decisions: prev.decisions.map(d =>
@@ -195,11 +243,16 @@ export function StateProvider({ children }: { children: ReactNode }) {
           : d
       ),
     }));
-    logActivity(null, 'decision_made', decisionId);
-  }, [logActivity]);
+    if (decision) {
+      logActivity(null, 'decision_made', decisionId);
+      addJournalEntry('decision_made', `${decision.title} → ${option}`, undefined, undefined, { option, method: 'explicit_choice' });
+      showToast(`Decided: ${option}`, 'success');
+    }
+  }, [state.decisions, logActivity, addJournalEntry, showToast]);
 
   // Decision: Defer
   const deferDecisionFn = useCallback((decisionId: string) => {
+    const decision = state.decisions.find(d => d.id === decisionId);
     setState(prev => ({
       ...prev,
       decisions: prev.decisions.map(d => {
@@ -208,8 +261,16 @@ export function StateProvider({ children }: { children: ReactNode }) {
         return { ...d, deferCount: d.deferCount + 1, deadline: newDeadline };
       }),
     }));
-    logActivity(null, 'decision_deferred', decisionId);
-  }, [logActivity]);
+    if (decision) {
+      if (decision.deferCount >= decision.maxDeferrals) {
+        showToast(`Cannot defer: max deferrals reached`, 'error');
+      } else {
+        logActivity(null, 'decision_deferred', decisionId);
+        addJournalEntry('decision_deferred', `${decision.title} — deferred 7 days`, undefined, undefined, { deferCount: decision.deferCount + 1 });
+        showToast(`Deferred 7 days: ${decision.title.slice(0, 35)}`, 'info');
+      }
+    }
+  }, [state.decisions, logActivity, addJournalEntry, showToast]);
 
   // Waiting On: Mark Received
   const markWaitingOnReceived = useCallback((id: string) => {
@@ -219,8 +280,11 @@ export function StateProvider({ children }: { children: ReactNode }) {
         w.id === id ? { ...w, status: 'received' as const } : w
       ),
     }));
+    const item = state.waitingOn.find(w => w.id === id);
     logActivity(null, 'waiting_on_updated', id);
-  }, [logActivity]);
+    addJournalEntry('waiting_on_received', item?.description || 'Item received', undefined, undefined, { person: item?.personOrVendor });
+    showToast(`Received from ${item?.personOrVendor || 'vendor'}`, 'success');
+  }, [state.waitingOn, logActivity, addJournalEntry, showToast]);
 
   // Milestone: Toggle Gate
   const toggleMilestoneGate = useCallback((milestoneId: string, gateIndex: number) => {
@@ -239,7 +303,41 @@ export function StateProvider({ children }: { children: ReactNode }) {
         };
       }),
     }));
-  }, []);
+    const milestone = state.milestones.find(m => m.id === milestoneId);
+    if (milestone) {
+      const gate = milestone.gateCriteria[gateIndex];
+      const wasMetBefore = gate?.met;
+      if (wasMetBefore) {
+        showToast(`Gate unchecked: ${gate.description.slice(0, 40)}`, 'info');
+      } else {
+        addJournalEntry('milestone_gate_met', `${milestone.title}: ${gate?.description}`, undefined, undefined, { milestoneId, gateIndex });
+        showToast(`Gate met: ${gate?.description.slice(0, 40)}`, 'success');
+      }
+    }
+  }, [state.milestones, addJournalEntry, showToast]);
+
+  // Journal: Add Manual Note
+  const addManualNote = useCallback((note: string, streamSlug?: string) => {
+    const streamId = streamSlug ? state.streams.find(s => s.slug === streamSlug)?.id || null : null;
+    addJournalEntry('manual_note', note, undefined, streamId || undefined);
+    showToast('Note saved to journal', 'success');
+  }, [state.streams, addJournalEntry, showToast]);
+
+  // Task: Cancel
+  const cancelTask = useCallback((taskId: string, reason?: string) => {
+    setState(prev => ({
+      ...prev,
+      tasks: prev.tasks.map(t =>
+        t.id === taskId ? { ...t, status: 'cancelled' as const, blockedReason: reason || 'Cancelled' } : t
+      ),
+    }));
+    const task = state.tasks.find(t => t.id === taskId);
+    if (task) {
+      logActivity(task.streamId, 'task_status_changed', taskId);
+      addJournalEntry('task_cancelled', `${task.title}${reason ? ` — ${reason}` : ''}`, taskId, task.streamId, { reason });
+      showToast(`Cancelled: ${task.title.slice(0, 40)}`, 'info');
+    }
+  }, [state.tasks, logActivity, addJournalEntry, showToast]);
 
   return (
     <StateContext.Provider value={{
@@ -256,6 +354,8 @@ export function StateProvider({ children }: { children: ReactNode }) {
       deferDecision: deferDecisionFn,
       markWaitingOnReceived,
       toggleMilestoneGate,
+      addManualNote,
+      cancelTask,
     }}>
       {children}
     </StateContext.Provider>

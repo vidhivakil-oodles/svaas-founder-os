@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useAppState } from '@/lib/state-provider';
 import { getDayNumber, getWeekNumber, VENTURE_CONFIG } from '@/lib/venture-config';
 import Link from 'next/link';
+import { AppNav, BackToHome } from '@/components/shared/nav';
+import { VentureJournal, WeekJournalSummary } from '@/components/shared/venture-journal';
 
 // Dynamically calculate review data from real state
 function calculateReviewData(state: any) {
@@ -80,13 +82,14 @@ function calculateReviewData(state: any) {
 }
 
 const STEPS = [
-  { id: 1, title: 'What Got Done', time: '2 min' },
+  { id: 1, title: 'What Happened', time: '2 min' },
   { id: 2, title: 'What\'s Stuck', time: '3 min' },
   { id: 3, title: 'Vendor Check', time: '2 min' },
   { id: 4, title: 'Decisions', time: '3 min' },
   { id: 5, title: 'Next Week Focus', time: '3 min' },
   { id: 6, title: 'Momentum', time: '2 min' },
-  { id: 7, title: 'Patterns', time: '1 min' },
+  { id: 7, title: 'Venture Journal', time: '2 min' },
+  { id: 8, title: 'Close Week', time: '1 min' },
 ];
 
 export default function WeeklyReviewPage() {
@@ -97,7 +100,7 @@ export default function WeeklyReviewPage() {
   return (
     <div className="space-y-6">
       <header>
-        <Link href="/" className="text-xs text-zinc-600 hover:text-zinc-400">← Venture Radar</Link>
+        <BackToHome />
         <h1 className="text-2xl font-bold text-zinc-100 mt-1">Weekly Review</h1>
         <p className="text-sm text-zinc-500">
           Week {data.weekNumber} &bull; {data.dayRange} &bull; ~15 minutes
@@ -126,18 +129,8 @@ export default function WeeklyReviewPage() {
       <div className="border border-zinc-800 rounded-lg p-6 min-h-[320px]">
         {currentStep === 1 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-100">What Got Done This Week?</h2>
-            <div className="space-y-2">
-              {data.completedThisWeek.map((item: string, i: number) => (
-                <div key={i} className="flex items-center gap-3 py-2">
-                  <span className="text-emerald-400">✓</span>
-                  <span className="text-zinc-200">{item}</span>
-                </div>
-              ))}
-            </div>
-            <p className="text-sm text-zinc-500 pt-2 border-t border-zinc-800">
-              That&apos;s {data.completedThisWeek.length} actions. {data.completedThisWeek.length >= 3 ? 'Good progress.' : 'Let\'s aim higher next week.'}
-            </p>
+            <h2 className="text-lg font-semibold text-zinc-100">What Happened This Week?</h2>
+            <WeekJournalSummary />
           </div>
         )}
 
@@ -315,14 +308,19 @@ export default function WeeklyReviewPage() {
 
         {currentStep === 7 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-100">Patterns & Insights</h2>
+            <h2 className="text-lg font-semibold text-zinc-100">Venture Journal</h2>
+            <p className="text-sm text-zinc-500">Your venture memory. Add notes, see the full timeline.</p>
+            <VentureJournal thisWeekOnly={true} maxEntries={30} showNoteInput={true} compact={false} />
+          </div>
+        )}
 
-            <p className="text-zinc-500 text-sm">Patterns will appear after 4+ weeks of activity data.</p>
+        {currentStep === 8 && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-zinc-100">Close Week</h2>
 
-            {/* Close Week */}
-            <div className="border-t border-zinc-800 pt-4 space-y-3">
+            <div className="space-y-3">
               <p className="text-sm text-zinc-400">
-                Week {data.weekNumber} reviewed. {data.completedThisWeek.length} actions completed.
+                Week {data.weekNumber} reviewed. Your venture memory is intact.
               </p>
               <button className="w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md font-medium transition-colors">
                 ✓ Close Week {data.weekNumber}
@@ -345,13 +343,15 @@ export default function WeeklyReviewPage() {
           {STEPS.map(s => s.time.replace(' min', '')).reduce((sum, t) => sum + parseInt(t), 0)} min total
         </span>
         <button
-          onClick={() => setCurrentStep(Math.min(7, currentStep + 1))}
-          disabled={currentStep === 7}
+          onClick={() => setCurrentStep(Math.min(8, currentStep + 1))}
+          disabled={currentStep === 8}
           className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed text-zinc-300 text-sm rounded-md transition-colors"
         >
           Next →
         </button>
       </div>
+
+      <AppNav />
     </div>
   );
 }

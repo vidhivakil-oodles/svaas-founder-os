@@ -21,6 +21,16 @@ export const DATA_VERSION = 3;
 
 const STORAGE_KEY = 'svaas-os-state';
 
+export interface JournalEntry {
+  id: string;
+  type: string; // task_completed, task_started, task_blocked, task_committed, task_waiting_on, task_deferred, decision_made, decision_deferred, waiting_on_received, milestone_gate_met, manual_note
+  title: string;
+  taskId: string | null;
+  streamId: string | null;
+  metadata: Record<string, any>;
+  createdAt: string;
+}
+
 export interface AppState {
   dataVersion: number;
   dataSource: 'seed' | 'imported' | 'supabase';
@@ -34,6 +44,7 @@ export interface AppState {
   activityLog: ActivityEntry[];
   dailyEngagement: DailyEntry[];
   reviewHistory: ReviewEntry[];
+  journal: JournalEntry[];
   lastUpdated: string;
 }
 
@@ -73,6 +84,7 @@ function getDefaultState(): AppState {
     activityLog: [],
     dailyEngagement: [],
     reviewHistory: [],
+    journal: [],
     lastUpdated: new Date().toISOString(),
   };
 }
@@ -98,6 +110,8 @@ export function loadState(): AppState {
 
       // Validate shape
       if (parsed.tasks && parsed.decisions && parsed.streams) {
+        // Backfill journal if missing (added in this version)
+        if (!parsed.journal) parsed.journal = [];
         return parsed;
       }
     }

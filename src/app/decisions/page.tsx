@@ -3,6 +3,7 @@
 import { useAppState } from '@/lib/state-provider';
 import { getDayNumber } from '@/lib/venture-config';
 import Link from 'next/link';
+import { AppNav, BackToHome } from '@/components/shared/nav';
 
 export default function DecisionsPage() {
   const { state, acceptDecisionDefault, makeDecision, deferDecision } = useAppState();
@@ -34,7 +35,7 @@ export default function DecisionsPage() {
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       <header>
-        <Link href="/" className="text-xs text-zinc-600 hover:text-zinc-400">← Home</Link>
+        <BackToHome />
         <h1 className="text-2xl font-bold text-zinc-100 mt-2">Decisions</h1>
         <p className="text-sm text-zinc-500">{pending.length} pending &bull; {decided.length} decided</p>
       </header>
@@ -107,6 +108,8 @@ export default function DecisionsPage() {
           ))}
         </div>
       )}
+
+      <AppNav />
     </div>
   );
 }

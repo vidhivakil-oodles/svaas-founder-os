@@ -4,6 +4,7 @@ import { useAppState } from '@/lib/state-provider';
 import { getDayNumber, getWeekNumber, VENTURE_CONFIG } from '@/lib/venture-config';
 import Link from 'next/link';
 import { useState } from 'react';
+import { AppNav } from '@/components/shared/nav';
 
 const PHASES = [
   { name: 'Foundation', phases: ['P0'] },
@@ -170,19 +171,15 @@ export default function HomePage() {
       )}
 
       {/* Primary Nav */}
-      <nav className="flex gap-2 pt-4 border-t border-zinc-800">
-        <Link href="/today" className="flex-1 text-center py-3 rounded-xl border-2 border-emerald-800/50 bg-emerald-950/20 hover:border-emerald-700/50 text-sm text-emerald-400 font-medium transition-colors">Today</Link>
-        <Link href="/decisions" className="flex-1 text-center py-3 rounded-xl border border-zinc-800 hover:border-zinc-600 text-sm text-zinc-400 transition-colors">Decisions</Link>
-        <Link href="/review" className="flex-1 text-center py-3 rounded-xl border border-zinc-800 hover:border-zinc-600 text-sm text-zinc-400 transition-colors">Review</Link>
-      </nav>
+      <AppNav />
 
       {/* More */}
       <div className="text-center">
         <button onClick={() => setShowMore(!showMore)} className="text-xs text-zinc-600 hover:text-zinc-400">{showMore ? 'Less ↑' : 'More ↓'}</button>
         {showMore && (
           <div className="flex flex-wrap gap-2 justify-center mt-3">
-            <Link href="/warroom" className="px-3 py-1.5 rounded-lg border border-red-900/40 text-xs text-red-400">War Room</Link>
             <Link href="/milestones" className="px-3 py-1.5 rounded-lg border border-zinc-800 text-xs text-zinc-500">Milestones</Link>
+            <Link href="/dependencies" className="px-3 py-1.5 rounded-lg border border-zinc-800 text-xs text-zinc-500">Dependencies</Link>
             <Link href="/admin" className="px-3 py-1.5 rounded-lg border border-zinc-800 text-xs text-zinc-500">Admin</Link>
           </div>
         )}

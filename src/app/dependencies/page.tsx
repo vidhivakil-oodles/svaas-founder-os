@@ -2,6 +2,7 @@
 
 import { useAppState } from '@/lib/state-provider';
 import Link from 'next/link';
+import { AppNav, BackToHome } from '@/components/shared/nav';
 
 const STATUS_COLORS: Record<string, string> = {
   red: 'text-red-400', yellow: 'text-amber-400', green: 'text-emerald-400', grey: 'text-zinc-500',
@@ -38,7 +39,7 @@ export default function DependenciesPage() {
   return (
     <div className="space-y-6">
       <header>
-        <Link href="/" className="text-xs text-zinc-600 hover:text-zinc-400">← Venture Radar</Link>
+        <BackToHome />
         <h1 className="text-2xl font-bold text-zinc-100 mt-1">Cross-Stream Dependencies</h1>
         <p className="text-sm text-zinc-500">Which streams block which? The cascade view.</p>
       </header>
@@ -104,6 +105,8 @@ export default function DependenciesPage() {
           &ldquo;Unblocking Legal & Product simultaneously would cascade progress into 5 of 7 streams.&rdquo;
         </p>
       </div>
+
+      <AppNav />
     </div>
   );
 }

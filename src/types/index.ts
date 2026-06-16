@@ -3,7 +3,7 @@
 // ============================================================
 
 export type StreamStatus = 'green' | 'yellow' | 'red' | 'grey';
-export type TaskStatus = 'not_started' | 'committed_today' | 'in_progress' | 'waiting_on' | 'blocked' | 'deferred' | 'done';
+export type TaskStatus = 'not_started' | 'committed_today' | 'in_progress' | 'waiting_on' | 'blocked' | 'deferred' | 'done' | 'cancelled';
 export type TaskPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 export type DecisionStatus = 'pending' | 'decided' | 'defaulted' | 'deferred';
 export type DependencyType = 'hard_block' | 'soft_block' | 'enables';

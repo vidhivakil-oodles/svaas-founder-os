@@ -3,6 +3,7 @@
 import { useAppState } from '@/lib/state-provider';
 import { getDayNumber } from '@/lib/venture-config';
 import Link from 'next/link';
+import { AppNav, BackToHome } from '@/components/shared/nav';
 
 export default function WarRoomPage() {
   const { state, markTaskDone, acceptDecisionDefault } = useAppState();
@@ -16,12 +17,19 @@ export default function WarRoomPage() {
 
   const criticalDecisions = state.decisions.filter((d: any) => d.status === 'pending' && d.deadline && new Date(d.deadline) < new Date());
 
-  const totalFires = overdueTasks.length + blockedTasks.length + criticalDecisions.length;
+  // Overdue waiting-on items
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const overdueWaiting = state.tasks
+    .filter((t: any) => t.status === 'waiting_on' && t.waitingOnDate && new Date(t.waitingOnDate) < today)
+    .sort((a: any, b: any) => new Date(a.waitingOnDate).getTime() - new Date(b.waitingOnDate).getTime());
+
+  const totalFires = overdueTasks.length + blockedTasks.length + criticalDecisions.length + overdueWaiting.length;
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       <header className="pt-2">
-        <Link href="/" className="text-xs text-zinc-600 hover:text-zinc-400">← Home</Link>
+        <BackToHome />
         <h1 className="text-2xl font-bold text-red-400 mt-2">War Room</h1>
         <p className="text-sm text-zinc-500">{totalFires} items need attention. Nothing else shown here.</p>
       </header>
@@ -83,9 +91,30 @@ export default function WarRoomPage() {
         </div>
       )}
 
-      <nav className="pt-4 border-t border-zinc-800">
-        <Link href="/today" className="px-4 py-2 rounded-lg border border-zinc-800 hover:border-zinc-600 text-sm text-zinc-400">← Today</Link>
-      </nav>
+      {/* Waiting On — Overdue */}
+      {overdueWaiting.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-medium text-blue-400 uppercase tracking-wide">Waiting On — Overdue ({overdueWaiting.length})</h2>
+          {overdueWaiting.map((t: any) => {
+            const expectedDate = new Date(t.waitingOnDate);
+            const daysLate = Math.floor((today.getTime() - expectedDate.getTime()) / (1000 * 60 * 60 * 24));
+            return (
+              <div key={t.id} className="border border-blue-900/50 bg-blue-950/10 rounded-xl p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-zinc-100 font-medium">{t.title}</p>
+                    <p className="text-xs text-blue-400 mt-0.5">{t.waitingOnPerson} is {daysLate}d late (expected {t.waitingOnDate})</p>
+                    {t.waitingOnNotes && <p className="text-xs text-zinc-500 mt-0.5">{t.waitingOnNotes}</p>}
+                  </div>
+                  <button onClick={() => markTaskDone(t.id)} className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs rounded-lg font-medium shrink-0">Received</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <AppNav />
     </div>
   );
 }

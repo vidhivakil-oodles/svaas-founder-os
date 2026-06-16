@@ -4,6 +4,7 @@ import { useAppState } from '@/lib/state-provider';
 import { getDayNumber, getWeekNumber, VENTURE_CONFIG } from '@/lib/venture-config';
 import Link from 'next/link';
 import { useState } from 'react';
+import { AppNav } from '@/components/shared/nav';
 
 function getConsequence(task: any) {
   if (task.department === 'LEGAL') return 'LLP, trademark, bank account all wait.';
@@ -17,8 +18,18 @@ function getConsequence(task: any) {
   return 'Launch timeline extends.';
 }
 
+function getDaysOverdueWaiting(task: any): number {
+  if (!task.waitingOnDate) return 0;
+  const expected = new Date(task.waitingOnDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  expected.setHours(0, 0, 0, 0);
+  const diff = Math.floor((today.getTime() - expected.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.max(0, diff);
+}
+
 export default function TodayPage() {
-  const { state, markTaskDone, startTask, commitTask, waitingOnTask, blockTask, deferTask } = useAppState();
+  const { state, markTaskDone, startTask, commitTask, waitingOnTask, blockTask, deferTask, cancelTask } = useAppState();
   const [wins, setWins] = useState<string[]>([]);
   const [showWaitingForm, setShowWaitingForm] = useState<string | null>(null);
   const [showDeferForm, setShowDeferForm] = useState<string | null>(null);
@@ -37,6 +48,12 @@ export default function TodayPage() {
   const waitingOn = state.tasks.filter((t: any) => t.status === 'waiting_on');
   const blocked = state.tasks.filter((t: any) => t.status === 'blocked');
   const overdue = state.tasks.filter((t: any) => t.status === 'not_started' && t.priority === 'CRITICAL' && t.dayRangeEnd && dayNumber > t.dayRangeEnd);
+
+  // Split waiting-on into overdue follow-ups vs. on-time
+  const overdueWaiting = waitingOn
+    .filter((t: any) => t.waitingOnDate && getDaysOverdueWaiting(t) > 0)
+    .sort((a: any, b: any) => getDaysOverdueWaiting(b) - getDaysOverdueWaiting(a));
+  const onTimeWaiting = waitingOn.filter((t: any) => !t.waitingOnDate || getDaysOverdueWaiting(t) === 0);
 
   const actionable = state.tasks
     .filter((t: any) => t.status === 'not_started' && !t.blockedReason)
@@ -82,32 +99,110 @@ export default function TodayPage() {
         </div>
       )}
 
+      {/* OVERDUE FOLLOW-UPS — Chief of Staff alert */}
+      {overdueWaiting.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="text-sm font-medium text-amber-400 uppercase tracking-wide flex items-center gap-2">
+            <span>⚠</span> Follow Up Required ({overdueWaiting.length})
+          </h2>
+          {overdueWaiting.map((t: any) => {
+            const daysOver = getDaysOverdueWaiting(t);
+            return (
+              <div key={t.id} className="border border-amber-900/50 bg-amber-950/15 rounded-xl p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-zinc-100 font-medium">{t.title}</p>
+                    <p className="text-xs text-amber-400 mt-0.5 font-medium">
+                      {t.waitingOnPerson} is {daysOver} day{daysOver > 1 ? 's' : ''} late
+                    </p>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      Expected: {t.waitingOnDate}{t.waitingOnNotes ? ` • ${t.waitingOnNotes}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button onClick={() => handleDone(t)} className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs rounded-lg">Received</button>
+                    <button onClick={() => blockTask(t.id, `No response from ${t.waitingOnPerson}`)} className="px-3 py-1.5 bg-red-900/50 hover:bg-red-800/50 text-red-300 text-xs rounded-lg">Escalate</button>
+                  </div>
+                </div>
+                <p className="text-xs text-amber-400/60 mt-2">
+                  Action: Follow up with {t.waitingOnPerson} today. {daysOver > 3 ? 'Consider alternative path.' : ''}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* My Commitments Today */}
       {committed.length > 0 && (
         <div className="space-y-2">
           <h2 className="text-sm font-medium text-emerald-400 uppercase tracking-wide">My Commitments Today</h2>
           {committed.map((t: any) => (
-            <div key={t.id} className="border-2 border-emerald-700/50 bg-emerald-950/20 rounded-xl p-4 flex items-center justify-between">
+            <div key={t.id} className="border-2 border-emerald-700/50 bg-emerald-950/20 rounded-xl p-4 space-y-3">
               <div>
                 <p className="text-zinc-100 font-medium">{t.title}</p>
                 <p className="text-xs text-zinc-500">{t.department} &bull; {t.owner}</p>
+                <p className="text-xs text-red-400/70 mt-1">If ignored → {getConsequence(t)}</p>
               </div>
-              <button onClick={() => handleDone(t)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-medium">✓ Done</button>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => handleDone(t)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-medium">✓ Done</button>
+                <button onClick={() => startTask(t.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg">Start</button>
+                <button onClick={() => setShowWaitingForm(t.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-blue-400 text-xs rounded-lg">Waiting On</button>
+                <button onClick={() => setShowDeferForm(t.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-500 text-xs rounded-lg">Defer</button>
+                <button onClick={() => blockTask(t.id, 'Blocked')} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-red-400 text-xs rounded-lg">Blocked</button>
+                <button onClick={() => cancelTask(t.id)} className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-600 text-xs rounded-lg">Cancel</button>
+              </div>
+              {/* Waiting On form */}
+              {showWaitingForm === t.id && (
+                <div className="border border-blue-900/40 rounded-lg p-3 space-y-2">
+                  <input value={waitPerson} onChange={e => setWaitPerson(e.target.value)} placeholder="Who? (person/vendor)" className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
+                  <div className="space-y-1">
+                    <label className="text-xs text-zinc-500">Expected follow-up date</label>
+                    <input type="date" value={waitDate} onChange={e => setWaitDate(e.target.value)} className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
+                  </div>
+                  <input value={waitNotes} onChange={e => setWaitNotes(e.target.value)} placeholder="Notes (optional)" className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
+                  <div className="flex gap-2">
+                    <button onClick={() => handleWaitingOn(t.id)} className="px-3 py-1.5 bg-blue-700 text-white text-xs rounded-lg">Save</button>
+                    <button onClick={() => setShowWaitingForm(null)} className="px-3 py-1.5 text-zinc-500 text-xs">Cancel</button>
+                  </div>
+                </div>
+              )}
+              {/* Defer form */}
+              {showDeferForm === t.id && (
+                <div className="border border-zinc-700 rounded-lg p-3 space-y-2">
+                  <input value={deferReason} onChange={e => setDeferReason(e.target.value)} placeholder="Why defer?" className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
+                  <div className="space-y-1">
+                    <label className="text-xs text-zinc-500">Review date (when to resurface)</label>
+                    <input type="date" value={deferDate} onChange={e => setDeferDate(e.target.value)} className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleDefer(t.id)} className="px-3 py-1.5 bg-zinc-700 text-white text-xs rounded-lg">Defer</button>
+                    <button onClick={() => setShowDeferForm(null)} className="px-3 py-1.5 text-zinc-500 text-xs">Cancel</button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
       )}
 
-      {/* Waiting On Others */}
-      {waitingOn.length > 0 && (
+      {/* Waiting On Others (on-time) */}
+      {onTimeWaiting.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-sm font-medium text-blue-400 uppercase tracking-wide">Waiting On Others</h2>
-          {waitingOn.map((t: any) => (
+          <h2 className="text-sm font-medium text-blue-400 uppercase tracking-wide">Waiting On Others ({onTimeWaiting.length})</h2>
+          {onTimeWaiting.map((t: any) => (
             <div key={t.id} className="border border-blue-900/40 bg-blue-950/10 rounded-xl p-4">
-              <p className="text-zinc-100 font-medium">{t.title}</p>
-              <p className="text-xs text-zinc-500 mt-0.5">Waiting on: {t.waitingOnPerson} &bull; Expected: {t.waitingOnDate || '—'}</p>
-              {t.waitingOnNotes && <p className="text-xs text-zinc-600 mt-0.5">{t.waitingOnNotes}</p>}
-              <button onClick={() => handleDone(t)} className="mt-2 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs rounded-lg">Received → Done</button>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-zinc-100 font-medium">{t.title}</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    Waiting on: {t.waitingOnPerson || 'Unknown'}
+                    {t.waitingOnDate ? ` • Expected: ${t.waitingOnDate}` : ' • No date set'}
+                  </p>
+                  {t.waitingOnNotes && <p className="text-xs text-zinc-600 mt-0.5">{t.waitingOnNotes}</p>}
+                </div>
+                <button onClick={() => handleDone(t)} className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs rounded-lg shrink-0">Received</button>
+              </div>
             </div>
           ))}
         </div>
@@ -123,6 +218,9 @@ export default function TodayPage() {
               <p className="text-xs text-red-400">{t.blockedReason}</p>
             </div>
           ))}
+          {blocked.length > 3 && (
+            <Link href="/warroom" className="text-xs text-red-400 hover:text-red-300">+{blocked.length - 3} more in War Room →</Link>
+          )}
         </div>
       )}
 
@@ -161,13 +259,17 @@ export default function TodayPage() {
               <button onClick={() => setShowWaitingForm(task.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-blue-400 text-xs rounded-lg">Waiting On</button>
               <button onClick={() => blockTask(task.id, 'Blocked')} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-red-400 text-xs rounded-lg">Blocked</button>
               <button onClick={() => setShowDeferForm(task.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-500 text-xs rounded-lg">Defer</button>
+              <button onClick={() => cancelTask(task.id)} className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-600 text-xs rounded-lg">Cancel</button>
             </div>
 
             {/* Waiting On form */}
             {showWaitingForm === task.id && (
               <div className="border border-blue-900/40 rounded-lg p-3 space-y-2">
                 <input value={waitPerson} onChange={e => setWaitPerson(e.target.value)} placeholder="Who? (person/vendor)" className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
-                <input type="date" value={waitDate} onChange={e => setWaitDate(e.target.value)} className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
+                <div className="space-y-1">
+                  <label className="text-xs text-zinc-500">Expected follow-up date</label>
+                  <input type="date" value={waitDate} onChange={e => setWaitDate(e.target.value)} className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
+                </div>
                 <input value={waitNotes} onChange={e => setWaitNotes(e.target.value)} placeholder="Notes (optional)" className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
                 <div className="flex gap-2">
                   <button onClick={() => handleWaitingOn(task.id)} className="px-3 py-1.5 bg-blue-700 text-white text-xs rounded-lg">Save</button>
@@ -180,7 +282,10 @@ export default function TodayPage() {
             {showDeferForm === task.id && (
               <div className="border border-zinc-700 rounded-lg p-3 space-y-2">
                 <input value={deferReason} onChange={e => setDeferReason(e.target.value)} placeholder="Why defer?" className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
-                <input type="date" value={deferDate} onChange={e => setDeferDate(e.target.value)} className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
+                <div className="space-y-1">
+                  <label className="text-xs text-zinc-500">Review date (when to resurface)</label>
+                  <input type="date" value={deferDate} onChange={e => setDeferDate(e.target.value)} className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
+                </div>
                 <div className="flex gap-2">
                   <button onClick={() => handleDefer(task.id)} className="px-3 py-1.5 bg-zinc-700 text-white text-xs rounded-lg">Defer</button>
                   <button onClick={() => setShowDeferForm(null)} className="px-3 py-1.5 text-zinc-500 text-xs">Cancel</button>
@@ -192,11 +297,7 @@ export default function TodayPage() {
       </div>
 
       {/* Nav */}
-      <nav className="flex gap-2 pt-4 border-t border-zinc-800">
-        <Link href="/" className="px-4 py-2 rounded-lg border border-zinc-800 hover:border-zinc-600 text-sm text-zinc-400">Home</Link>
-        <Link href="/decisions" className="px-4 py-2 rounded-lg border border-zinc-800 hover:border-zinc-600 text-sm text-zinc-400">Decisions</Link>
-        <Link href="/warroom" className="px-4 py-2 rounded-lg border border-red-900/40 hover:border-red-700/40 text-sm text-red-400">War Room</Link>
-      </nav>
+      <AppNav />
     </div>
   );
 }
