@@ -16,15 +16,15 @@ const PHASES = [
 function getCurrentPhaseIndex(tasks: any[]) {
   for (let i = 0; i < PHASES.length; i++) {
     const phaseTasks = tasks.filter((t: any) => PHASES[i].phases.includes(t.phase) && t.priority === 'CRITICAL');
-    const incomplete = phaseTasks.filter((t: any) => t.status !== 'done');
-    if (incomplete.length > 0) return i;
+    if (phaseTasks.some((t: any) => t.status !== 'done')) return i;
   }
   return PHASES.length - 1;
 }
 
 export default function HomePage() {
-  const { state, isLoaded } = useAppState();
+  const { state, isLoaded, markTaskDone, acceptDecisionDefault } = useAppState();
   const [showMore, setShowMore] = useState(false);
+  const [scheduledConvo, setScheduledConvo] = useState(false);
   const dayNumber = getDayNumber();
   const weekNumber = getWeekNumber();
 
@@ -36,13 +36,9 @@ export default function HomePage() {
   const blocked = state.tasks.filter((t: any) => t.status === 'blocked');
   const doneTasks = state.tasks.filter((t: any) => t.status === 'done').length;
 
-  // CEO Brief items
-  const bottleneck = (() => {
-    if (blocked.length > 0) {
-      const c = blocked.find((t: any) => t.priority === 'CRITICAL') || blocked[0];
-      return { title: c.title, sub: c.blockedReason || 'Blocked', type: 'Blocked' };
-    }
-    if (overdue.length > 0) return { title: overdue[0].title, sub: `${dayNumber - (overdue[0].dayRangeEnd || 0)}d overdue`, type: 'Overdue' };
+  const bottleneckTask = (() => {
+    if (blocked.length > 0) return blocked.find((t: any) => t.priority === 'CRITICAL') || blocked[0];
+    if (overdue.length > 0) return overdue[0];
     return null;
   })();
 
@@ -58,16 +54,14 @@ export default function HomePage() {
     .sort((a: any, b: any) => (a.dayRangeEnd || 999) - (b.dayRangeEnd || 999))[0];
 
   const nextMilestone = state.milestones.find((m: any) => m.status !== 'achieved');
+  const milestoneGatesRemaining = nextMilestone ? nextMilestone.gateCriteria.filter((g: any) => !g.met).length : 0;
 
-  // Momentum — only show if activity exists
-  const hasActivity = doneTasks > 0 || state.dailyEngagement.length > 0;
+  const hasActivity = doneTasks > 0;
   const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const thisWeekDone = state.tasks.filter((t: any) => t.completedAt && new Date(t.completedAt) >= weekStart).length;
-  const decisionsThisWeek = state.decisions.filter((d: any) => d.decidedAt && new Date(d.decidedAt) >= weekStart).length;
 
   return (
-    <div className="space-y-8 max-w-2xl mx-auto">
-      {/* Header */}
+    <div className="space-y-6 max-w-2xl mx-auto">
       <div className="pt-4">
         <p className="text-zinc-500 text-sm">Day {dayNumber} &bull; Week {weekNumber} &bull; {daysToLaunch}d to launch</p>
         <h1 className="text-3xl font-bold text-zinc-100 mt-1">SVAAS</h1>
@@ -83,60 +77,88 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* CEO Brief */}
+      {/* ACTIONABLE CEO BRIEF */}
       <div className="space-y-3">
-        {/* Bottleneck */}
-        {bottleneck && (
-          <div className="border border-red-900/40 bg-red-950/10 rounded-xl p-4">
-            <p className="text-xs text-red-400 uppercase tracking-wide font-medium mb-1">Bottleneck</p>
-            <p className="text-zinc-100 font-medium">{bottleneck.title}</p>
-            <p className="text-sm text-zinc-500 mt-0.5">{bottleneck.sub}</p>
+
+        {/* Bottleneck — actionable */}
+        {bottleneckTask && (
+          <div className="border border-red-900/40 bg-red-950/10 rounded-xl p-4 space-y-3">
+            <p className="text-xs text-red-400 uppercase tracking-wide font-medium">Bottleneck</p>
+            <p className="text-zinc-100 font-medium">{bottleneckTask.title}</p>
+            <p className="text-xs text-zinc-500">{bottleneckTask.blockedReason || `${dayNumber - (bottleneckTask.dayRangeEnd || 0)}d overdue`}</p>
+            <p className="text-xs text-red-400/70">If ignored → downstream work stays frozen.</p>
+            <div className="flex gap-2">
+              {bottleneckTask.status !== 'blocked' && (
+                <button onClick={() => markTaskDone(bottleneckTask.id)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-medium">✓ Resolved</button>
+              )}
+              <Link href="/warroom" className="px-3 py-1.5 border border-red-900/40 text-red-400 text-xs rounded-lg hover:border-red-700/40">See all blocked →</Link>
+            </div>
           </div>
         )}
 
-        {/* Decision */}
+        {/* Decision — one-click resolve */}
         {topDecision && (
-          <Link href="/decisions" className="block border border-amber-900/40 bg-amber-950/10 rounded-xl p-4 hover:border-amber-700/40 transition-colors">
-            <p className="text-xs text-amber-400 uppercase tracking-wide font-medium mb-1">Decision Needed</p>
+          <div className="border border-amber-900/40 bg-amber-950/10 rounded-xl p-4 space-y-3">
+            <p className="text-xs text-amber-400 uppercase tracking-wide font-medium">Decision Needed</p>
             <p className="text-zinc-100 font-medium">{topDecision.title}</p>
-            <p className="text-sm text-zinc-500 mt-0.5">Default: {topDecision.defaultOption}</p>
-          </Link>
+            <p className="text-xs text-zinc-500">Default: {topDecision.defaultOption}</p>
+            <p className="text-xs text-amber-400/70">If ignored → dependent work cannot start until decided.</p>
+            <div className="flex gap-2">
+              <button onClick={() => acceptDecisionDefault(topDecision.id)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-medium">Accept: {topDecision.defaultOption}</button>
+              <Link href="/decisions" className="px-3 py-1.5 border border-amber-900/40 text-amber-400 text-xs rounded-lg hover:border-amber-700/40">See options →</Link>
+            </div>
+          </div>
         )}
 
-        {/* Conversation */}
-        {conversation && (
-          <div className="border border-blue-900/40 bg-blue-950/10 rounded-xl p-4">
-            <p className="text-xs text-blue-400 uppercase tracking-wide font-medium mb-1">Conversation</p>
+        {/* Conversation — mark scheduled */}
+        {conversation && !scheduledConvo && (
+          <div className="border border-blue-900/40 bg-blue-950/10 rounded-xl p-4 space-y-3">
+            <p className="text-xs text-blue-400 uppercase tracking-wide font-medium">Conversation Needed</p>
             <p className="text-zinc-100 font-medium">{conversation.title}</p>
-            <p className="text-sm text-zinc-500 mt-0.5">{conversation.owner}</p>
+            <p className="text-xs text-zinc-500">{conversation.owner}</p>
+            <p className="text-xs text-blue-400/70">If ignored → this person-dependent task stays stuck.</p>
+            <div className="flex gap-2">
+              <button onClick={() => { markTaskDone(conversation.id); }} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-medium">✓ Done</button>
+              <button onClick={() => setScheduledConvo(true)} className="px-3 py-1.5 border border-blue-900/40 text-blue-400 text-xs rounded-lg hover:border-blue-700/40">Scheduled for later</button>
+            </div>
+          </div>
+        )}
+        {scheduledConvo && (
+          <div className="border border-blue-900/30 bg-blue-950/5 rounded-xl p-4">
+            <p className="text-xs text-blue-400">✓ Conversation scheduled. Follow up tomorrow.</p>
           </div>
         )}
 
-        {/* Task */}
-        {topTask && (
-          <Link href="/today" className="block border border-zinc-800 bg-zinc-900/30 rounded-xl p-4 hover:border-zinc-600 transition-colors">
-            <p className="text-xs text-zinc-400 uppercase tracking-wide font-medium mb-1">Top Task</p>
+        {/* Top Task — start/complete */}
+        {topTask && topTask.id !== conversation?.id && topTask.id !== bottleneckTask?.id && (
+          <div className="border border-zinc-800 bg-zinc-900/30 rounded-xl p-4 space-y-3">
+            <p className="text-xs text-zinc-400 uppercase tracking-wide font-medium">Top Task</p>
             <p className="text-zinc-100 font-medium">{topTask.title}</p>
-            <p className="text-sm text-zinc-500 mt-0.5">{topTask.owner} &bull; Due Day {topTask.dayRangeEnd || '—'}</p>
-          </Link>
+            <p className="text-xs text-zinc-500">{topTask.owner} &bull; Due Day {topTask.dayRangeEnd || '—'}</p>
+            <p className="text-xs text-zinc-500">If ignored → {topTask.notesDependencies ? topTask.notesDependencies.slice(0, 80) : 'Launch timeline extends.'}</p>
+            <div className="flex gap-2">
+              <button onClick={() => markTaskDone(topTask.id)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-medium">✓ Complete</button>
+              <Link href="/today" className="px-3 py-1.5 border border-zinc-700 text-zinc-400 text-xs rounded-lg hover:border-zinc-500">See all actions →</Link>
+            </div>
+          </div>
         )}
 
-        {/* Opportunity */}
+        {/* Opportunity — show what's needed */}
         {nextMilestone && (
-          <div className="border border-emerald-900/40 bg-emerald-950/10 rounded-xl p-4">
-            <p className="text-xs text-emerald-400 uppercase tracking-wide font-medium mb-1">Opportunity</p>
+          <Link href="/milestones" className="block border border-emerald-900/40 bg-emerald-950/10 rounded-xl p-4 space-y-2 hover:border-emerald-700/40 transition-colors">
+            <p className="text-xs text-emerald-400 uppercase tracking-wide font-medium">Opportunity</p>
             <p className="text-zinc-100 font-medium">Reach &quot;{nextMilestone.title}&quot;</p>
-            <p className="text-sm text-zinc-500 mt-0.5">{Math.max(0, nextMilestone.dayTarget - dayNumber)}d remaining</p>
-          </div>
+            <p className="text-xs text-zinc-500">{milestoneGatesRemaining} requirements remaining &bull; {Math.max(0, nextMilestone.dayTarget - dayNumber)}d left</p>
+            <p className="text-xs text-emerald-400/70">See exact requirements →</p>
+          </Link>
         )}
       </div>
 
-      {/* Momentum (hidden when no activity) */}
+      {/* Momentum or Streak Start */}
       {hasActivity ? (
         <div className="border border-zinc-800 rounded-xl p-4">
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div><div className="text-xl font-bold text-emerald-400">{thisWeekDone}</div><div className="text-xs text-zinc-600">Done this week</div></div>
-            <div><div className="text-xl font-bold text-amber-400">{decisionsThisWeek}</div><div className="text-xs text-zinc-600">Decisions</div></div>
+          <div className="grid grid-cols-2 gap-3 text-center">
+            <div><div className="text-xl font-bold text-emerald-400">{thisWeekDone}</div><div className="text-xs text-zinc-600">This week</div></div>
             <div><div className="text-xl font-bold text-zinc-200">{doneTasks}</div><div className="text-xs text-zinc-600">Total done</div></div>
           </div>
         </div>
@@ -159,12 +181,9 @@ export default function HomePage() {
         <button onClick={() => setShowMore(!showMore)} className="text-xs text-zinc-600 hover:text-zinc-400">{showMore ? 'Less ↑' : 'More ↓'}</button>
         {showMore && (
           <div className="flex flex-wrap gap-2 justify-center mt-3">
-            <Link href="/warroom" className="px-3 py-1.5 rounded-lg border border-red-900/40 text-xs text-red-400 hover:border-red-700/40">War Room</Link>
-            <Link href="/milestones" className="px-3 py-1.5 rounded-lg border border-zinc-800 text-xs text-zinc-500 hover:border-zinc-600">Milestones</Link>
-            <Link href="/dependencies" className="px-3 py-1.5 rounded-lg border border-zinc-800 text-xs text-zinc-500 hover:border-zinc-600">Dependencies</Link>
-            <Link href="/bottlenecks" className="px-3 py-1.5 rounded-lg border border-zinc-800 text-xs text-zinc-500 hover:border-zinc-600">Bottlenecks</Link>
-            <Link href="/admin" className="px-3 py-1.5 rounded-lg border border-zinc-800 text-xs text-zinc-500 hover:border-zinc-600">Admin</Link>
-            <Link href="/trust" className="px-3 py-1.5 rounded-lg border border-zinc-800 text-xs text-zinc-500 hover:border-zinc-600">Trust</Link>
+            <Link href="/warroom" className="px-3 py-1.5 rounded-lg border border-red-900/40 text-xs text-red-400">War Room</Link>
+            <Link href="/milestones" className="px-3 py-1.5 rounded-lg border border-zinc-800 text-xs text-zinc-500">Milestones</Link>
+            <Link href="/admin" className="px-3 py-1.5 rounded-lg border border-zinc-800 text-xs text-zinc-500">Admin</Link>
           </div>
         )}
       </div>
