@@ -1,208 +1,213 @@
 'use client';
 
 import { useAppState } from '@/lib/state-provider';
-import { getDayNumber, getLaunchProgress, VENTURE_CONFIG } from '@/lib/venture-config';
+import { getDayNumber, getWeekNumber, VENTURE_CONFIG } from '@/lib/venture-config';
 import Link from 'next/link';
 
-const STATUS_STYLES = {
-  green: { dot: 'bg-emerald-500', border: 'border-emerald-900/50', bg: 'bg-emerald-950/10' },
-  yellow: { dot: 'bg-amber-500', border: 'border-amber-900/50', bg: 'bg-amber-950/10' },
-  red: { dot: 'bg-red-500', border: 'border-red-900/50', bg: 'bg-red-950/10' },
-  grey: { dot: 'bg-zinc-600', border: 'border-zinc-800', bg: 'bg-zinc-900/30' },
-};
+const PHASES = [
+  { name: 'Foundation', phases: ['P0'], color: 'emerald' },
+  { name: 'Product', phases: ['P1', 'P2'], color: 'blue' },
+  { name: 'Validation', phases: ['P3', 'P4'], color: 'amber' },
+  { name: 'Launch', phases: ['P5'], color: 'purple' },
+  { name: 'Scale', phases: ['P6', 'P7', 'P8'], color: 'rose' },
+];
 
-function getDaysSince(dateStr: string | null): number {
-  if (!dateStr) return 999;
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
+function getCurrentPhaseIndex(tasks: any[]) {
+  // Current phase = earliest phase with incomplete critical tasks
+  for (let i = 0; i < PHASES.length; i++) {
+    const phaseTasks = tasks.filter((t: any) => PHASES[i].phases.includes(t.phase) && t.priority === 'CRITICAL');
+    const incomplete = phaseTasks.filter((t: any) => t.status !== 'done');
+    if (incomplete.length > 0) return i;
+  }
+  return PHASES.length - 1;
 }
 
-function calculateStreamStatus(stream: any, tasks: any[]): 'green' | 'yellow' | 'red' | 'grey' {
-  if (stream.status === 'grey') return 'grey';
-  const streamTasks = tasks.filter((t: any) => t.streamId === stream.id);
-  const blocked = streamTasks.filter((t: any) => t.status === 'blocked');
-  const days = getDaysSince(stream.lastMovementAt);
-  
-  if (days <= 7 && blocked.length === 0) return 'green';
-  if (days <= 14) return 'yellow';
-  return 'red';
+function getDecisionOfTheDay(decisions: any[]) {
+  const pending = decisions.filter((d: any) => d.status === 'pending');
+  if (pending.length === 0) return null;
+  // Rank by: overdue first, then by position in list (already ordered by importance in seed)
+  const overdue = pending.filter((d: any) => d.deadline && new Date(d.deadline) < new Date());
+  if (overdue.length > 0) return overdue[0];
+  return pending[0];
+}
+
+function getBottleneck(tasks: any[], dayNumber: number) {
+  const blocked = tasks.filter((t: any) => t.status === 'blocked');
+  if (blocked.length > 0) {
+    const critical = blocked.find((t: any) => t.priority === 'CRITICAL') || blocked[0];
+    return { title: critical.title, reason: critical.blockedReason, type: 'Blocked Task' };
+  }
+  const overdue = tasks.filter((t: any) => t.status === 'not_started' && t.priority === 'CRITICAL' && t.dayRangeEnd && dayNumber > t.dayRangeEnd)
+    .sort((a: any, b: any) => (a.dayRangeEnd || 999) - (b.dayRangeEnd || 999));
+  if (overdue.length > 0) return { title: overdue[0].title, reason: `${dayNumber - overdue[0].dayRangeEnd}d overdue`, type: 'Overdue Critical' };
+  return null;
+}
+
+function getMostImportantConversation(tasks: any[], dayNumber: number) {
+  // Tasks involving people (QP, CA, vendors, partners) that are overdue or due soon
+  const peopleKeywords = ['Confirm', 'Engage', 'Contact', 'Visit', 'Call', 'Meet', 'Schedule', 'Negotiate'];
+  const peopleTasks = tasks.filter((t: any) => 
+    t.status === 'not_started' && !t.blockedReason &&
+    peopleKeywords.some(k => t.title.includes(k))
+  ).sort((a: any, b: any) => {
+    const pri: any = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+    return (pri[b.priority] || 0) - (pri[a.priority] || 0);
+  });
+  return peopleTasks[0] || null;
 }
 
 export default function HomePage() {
   const { state, isLoaded } = useAppState();
-
-  if (!isLoaded) {
-    return <div className="flex items-center justify-center h-64 text-zinc-500">Loading...</div>;
-  }
-
   const dayNumber = getDayNumber();
-  const totalDays = VENTURE_CONFIG.launchTargetDays;
-  const progress = getLaunchProgress();
+  const weekNumber = getWeekNumber();
 
-  // Calculate stream health
-  const streamsWithHealth = state.streams.map(s => {
-    const streamTasks = state.tasks.filter(t => t.streamId === s.id);
-    const status = calculateStreamStatus(s, state.tasks);
-    return {
-      ...s,
-      status,
-      taskCount: streamTasks.length,
-      tasksDone: streamTasks.filter(t => t.status === 'done').length,
-      daysSinceMovement: getDaysSince(s.lastMovementAt),
-    };
-  });
+  if (!isLoaded) return <div className="flex items-center justify-center h-64 text-zinc-500">Loading...</div>;
 
-  const redCount = streamsWithHealth.filter(s => s.status === 'red').length;
-  const yellowCount = streamsWithHealth.filter(s => s.status === 'yellow').length;
-  const greenCount = streamsWithHealth.filter(s => s.status === 'green').length;
-  const greyCount = streamsWithHealth.filter(s => s.status === 'grey').length;
-
-  // Find highest leverage action
-  const actionable = state.tasks.filter(t => t.status === 'not_started' && !t.blockedReason && t.priority === 'CRITICAL');
-  const leverageAction = actionable.length > 0 ? actionable[0] : null;
-
-  // Overdue decisions
-  const overdueDecisions = state.decisions.filter(d => {
-    if (d.status !== 'pending' || !d.deadline) return false;
-    return new Date(d.deadline) < new Date();
-  });
-
-  // Dream protection
-  const today = new Date().toISOString().split('T')[0];
-  const weekStart = new Date();
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-  const thisWeekActivity = state.dailyEngagement.filter(e => {
+  const totalTasks = state.tasks.length;
+  const doneTasks = state.tasks.filter((t: any) => t.status === 'done').length;
+  const currentPhaseIdx = getCurrentPhaseIndex(state.tasks);
+  const bottleneck = getBottleneck(state.tasks, dayNumber);
+  const topDecision = getDecisionOfTheDay(state.decisions);
+  const conversation = getMostImportantConversation(state.tasks, dayNumber);
+  const topTask = state.tasks
+    .filter((t: any) => t.status === 'not_started' && !t.blockedReason && t.priority === 'CRITICAL')
+    .sort((a: any, b: any) => (a.dayRangeEnd || 999) - (b.dayRangeEnd || 999))[0];
+  
+  // Momentum
+  const thisWeekDone = state.tasks.filter((t: any) => {
+    if (!t.completedAt) return false;
+    const d = new Date(t.completedAt);
+    const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    return d >= weekStart;
+  }).length;
+  const decisionsThisWeek = state.decisions.filter((d: any) => {
+    if (!d.decidedAt) return false;
+    const dt = new Date(d.decidedAt);
+    const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    return dt >= weekStart;
+  }).length;
+  const daysActive = state.dailyEngagement.filter((e: any) => {
+    const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     return new Date(e.date) >= weekStart && e.hadActivity;
   }).length;
 
-  // Momentum (simplified)
-  const momentumScores = streamsWithHealth.filter(s => s.status !== 'grey').map(s => s.daysSinceMovement === 999 ? 0 : Math.max(0, 100 - s.daysSinceMovement * 4));
-  const momentumScore = momentumScores.length > 0 ? Math.round(momentumScores.reduce((a, b) => a + b, 0) / momentumScores.length) : 0;
+  const daysToLaunch = VENTURE_CONFIG.launchTargetDays - dayNumber;
+  const nextMilestone = state.milestones.find((m: any) => m.status !== 'achieved') || state.milestones[0];
 
   return (
-    <div className="space-y-6">
-      {/* TODAY link - primary CTA */}
-      <Link href="/today" className="block border-2 border-emerald-800/50 bg-emerald-950/20 rounded-xl p-4 hover:border-emerald-700/50 transition-colors">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-emerald-400 font-medium text-sm">→ Open Today&apos;s Brief</p>
-            <p className="text-zinc-500 text-xs mt-0.5">Day {dayNumber} &bull; Your top 3 actions &bull; What matters now</p>
-          </div>
-          <span className="text-emerald-500 text-2xl">→</span>
-        </div>
-      </Link>
-
+    <div className="space-y-8 max-w-2xl mx-auto">
       {/* Header */}
-      <header className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-100">SVAAS Venture Radar</h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            Day {dayNumber} of {totalDays} &bull; Target: Public Launch
-          </p>
-        </div>
-        <div className="text-right">
-          <div className="flex items-center gap-0.5 justify-end">
-            {Array.from({ length: 7 }, (_, i) => (
-              <div key={i} className={`w-2 h-2 rounded-full ${i < thisWeekActivity ? 'bg-emerald-500' : 'bg-zinc-700'}`} />
-            ))}
-          </div>
-          <p className="text-xs text-zinc-600 mt-1">{thisWeekActivity}/5 days active</p>
-        </div>
-      </header>
-
-      {/* Progress bar */}
-      <div className="space-y-1">
-        <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-          <div className="h-full bg-emerald-600 rounded-full transition-all" style={{ width: `${progress}%` }} />
-        </div>
-        <div className="flex justify-between text-xs text-zinc-600">
-          <span>{progress}% elapsed</span>
-          <span>Momentum: {momentumScore}/100</span>
-        </div>
+      <div className="pt-4">
+        <p className="text-zinc-500 text-sm">Day {dayNumber} &bull; Week {weekNumber} &bull; {daysToLaunch} days to launch</p>
+        <h1 className="text-3xl font-bold text-zinc-100 mt-1">SVAAS</h1>
       </div>
 
-      {/* Highest Leverage Action */}
-      {leverageAction && (
-        <Link href="/command" className="block">
-          <div className="border border-amber-900/50 bg-amber-950/20 rounded-lg p-4 hover:border-amber-700/50 transition-colors">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-amber-500 text-sm font-medium">🎯 Highest Leverage Action</span>
+      {/* Venture Timeline (Visual) */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1">
+          {PHASES.map((phase, i) => (
+            <div key={i} className="flex-1 flex flex-col items-center gap-1">
+              <div className={`w-full h-2 rounded-full ${
+                i < currentPhaseIdx ? 'bg-emerald-600' :
+                i === currentPhaseIdx ? 'bg-amber-500' : 'bg-zinc-800'
+              }`} />
+              <span className={`text-xs ${i === currentPhaseIdx ? 'text-amber-400 font-medium' : i < currentPhaseIdx ? 'text-emerald-500' : 'text-zinc-600'}`}>
+                {phase.name}
+              </span>
             </div>
-            <p className="text-zinc-100 font-medium">{leverageAction.title}</p>
-            <p className="text-zinc-500 text-sm mt-1 line-clamp-1">{leverageAction.notesDependencies}</p>
-          </div>
-        </Link>
-      )}
-
-      {/* Stream Cards */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wide">Stream Health</h2>
-        {streamsWithHealth
-          .sort((a, b) => {
-            const order = { red: 0, yellow: 1, green: 2, grey: 3 };
-            return order[a.status] - order[b.status];
-          })
-          .map(stream => {
-            const style = STATUS_STYLES[stream.status];
-            return (
-              <Link href={`/stream/${stream.slug}`} key={stream.id}>
-                <div className={`border ${style.border} ${style.bg} rounded-lg p-4 hover:border-zinc-600 transition-all cursor-pointer mb-3`}>
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2.5 h-2.5 rounded-full ${style.dot} ${stream.status === 'red' ? 'animate-pulse' : ''}`} />
-                      <h3 className="font-medium text-zinc-200 text-sm">{stream.name}</h3>
-                    </div>
-                    {stream.daysSinceMovement < 999 && stream.status !== 'grey' && (
-                      <span className={`text-xs ${stream.daysSinceMovement > 21 ? 'text-red-400' : stream.daysSinceMovement > 14 ? 'text-amber-400' : 'text-zinc-500'}`}>
-                        {stream.daysSinceMovement}d ago
-                      </span>
-                    )}
-                    {stream.daysSinceMovement >= 999 && stream.status !== 'grey' && (
-                      <span className="text-xs text-zinc-600">No activity yet</span>
-                    )}
-                  </div>
-                  <div className="space-y-1.5 text-xs">
-                    {stream.currentBottleneck && (
-                      <div className="flex gap-2">
-                        <span className="text-zinc-600 shrink-0">Bottleneck:</span>
-                        <span className="text-zinc-400">{stream.currentBottleneck}</span>
-                      </div>
-                    )}
-                    {stream.waitingOn && (
-                      <div className="flex gap-2">
-                        <span className="text-zinc-600 shrink-0">Waiting on:</span>
-                        <span className="text-zinc-400">{stream.waitingOn}</span>
-                      </div>
-                    )}
-                  </div>
-                  {stream.taskCount > 0 && (
-                    <div className="mt-3 flex items-center gap-2">
-                      <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full ${stream.status === 'green' ? 'bg-emerald-600' : stream.status === 'yellow' ? 'bg-amber-600' : stream.status === 'red' ? 'bg-red-600' : 'bg-zinc-700'}`} style={{ width: `${Math.round((stream.tasksDone / stream.taskCount) * 100)}%` }} />
-                      </div>
-                      <span className="text-xs text-zinc-600">{stream.tasksDone}/{stream.taskCount}</span>
-                    </div>
-                  )}
-                </div>
-              </Link>
-            );
-          })}
+          ))}
+        </div>
       </div>
 
-      {/* Summary */}
-      <div className="border border-zinc-800 rounded-lg p-4 grid grid-cols-4 gap-2 text-center">
-        <div><div className="text-lg font-bold text-red-400">{redCount}</div><div className="text-xs text-zinc-600">Red</div></div>
-        <div><div className="text-lg font-bold text-amber-400">{yellowCount}</div><div className="text-xs text-zinc-600">Yellow</div></div>
-        <div><div className="text-lg font-bold text-emerald-400">{greenCount}</div><div className="text-xs text-zinc-600">Green</div></div>
-        <div><div className="text-lg font-bold text-zinc-500">{greyCount}</div><div className="text-xs text-zinc-600">Grey</div></div>
+      {/* CEO Brief — 5 Cards */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wide">CEO Brief</h2>
+
+        {/* Biggest Bottleneck */}
+        <div className="border border-red-900/40 bg-red-950/10 rounded-xl p-4">
+          <p className="text-xs text-red-400 uppercase tracking-wide font-medium mb-1">Biggest Bottleneck</p>
+          {bottleneck ? (
+            <>
+              <p className="text-zinc-100 font-medium">{bottleneck.title}</p>
+              <p className="text-sm text-zinc-500 mt-0.5">{bottleneck.reason} &bull; {bottleneck.type}</p>
+            </>
+          ) : (
+            <p className="text-zinc-400">No blockers detected. Path is clear.</p>
+          )}
+        </div>
+
+        {/* Most Important Decision */}
+        {topDecision && (
+          <Link href="/decisions" className="block border border-amber-900/40 bg-amber-950/10 rounded-xl p-4 hover:border-amber-700/40 transition-colors">
+            <p className="text-xs text-amber-400 uppercase tracking-wide font-medium mb-1">Decision Needed</p>
+            <p className="text-zinc-100 font-medium">{topDecision.title}</p>
+            <p className="text-sm text-zinc-500 mt-0.5">
+              {topDecision.deadline && new Date(topDecision.deadline) < new Date() ? 'OVERDUE' : `Due: ${topDecision.deadline}`}
+              {topDecision.defaultOption && ` • Default: ${topDecision.defaultOption}`}
+            </p>
+            <p className="text-xs text-amber-400/70 mt-2">Cost of waiting: every day undecided delays downstream work →</p>
+          </Link>
+        )}
+
+        {/* Most Important Conversation */}
+        {conversation && (
+          <div className="border border-blue-900/40 bg-blue-950/10 rounded-xl p-4">
+            <p className="text-xs text-blue-400 uppercase tracking-wide font-medium mb-1">Conversation Needed</p>
+            <p className="text-zinc-100 font-medium">{conversation.title}</p>
+            <p className="text-sm text-zinc-500 mt-0.5">{conversation.department} &bull; {conversation.owner}</p>
+          </div>
+        )}
+
+        {/* Most Important Task */}
+        {topTask && (
+          <Link href="/today" className="block border border-zinc-800 bg-zinc-900/30 rounded-xl p-4 hover:border-zinc-600 transition-colors">
+            <p className="text-xs text-zinc-400 uppercase tracking-wide font-medium mb-1">Top Task</p>
+            <p className="text-zinc-100 font-medium">{topTask.title}</p>
+            <p className="text-sm text-zinc-500 mt-0.5">{topTask.department} &bull; {topTask.owner} &bull; Due Day {topTask.dayRangeEnd || '—'}</p>
+          </Link>
+        )}
+
+        {/* Biggest Opportunity */}
+        <div className="border border-emerald-900/40 bg-emerald-950/10 rounded-xl p-4">
+          <p className="text-xs text-emerald-400 uppercase tracking-wide font-medium mb-1">Biggest Opportunity</p>
+          <p className="text-zinc-100 font-medium">
+            {nextMilestone ? `Reach "${nextMilestone.title}" in ${Math.max(0, nextMilestone.dayTarget - dayNumber)} days` : 'Launch SVAAS'}
+          </p>
+          <p className="text-sm text-zinc-500 mt-0.5">{doneTasks}/{totalTasks} tasks complete &bull; {daysToLaunch} days remaining</p>
+        </div>
+      </div>
+
+      {/* Momentum */}
+      <div className="border border-zinc-800 rounded-xl p-4">
+        <h3 className="text-sm font-medium text-zinc-500 uppercase tracking-wide mb-3">This Week</h3>
+        <div className="grid grid-cols-4 gap-3 text-center">
+          <div>
+            <div className="text-2xl font-bold text-emerald-400">{thisWeekDone}</div>
+            <div className="text-xs text-zinc-600">Tasks Done</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-amber-400">{decisionsThisWeek}</div>
+            <div className="text-xs text-zinc-600">Decisions</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-zinc-200">{daysActive}</div>
+            <div className="text-xs text-zinc-600">Days Active</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-zinc-200">{doneTasks}</div>
+            <div className="text-xs text-zinc-600">Total Done</div>
+          </div>
+        </div>
       </div>
 
       {/* Navigation */}
-      <nav className="grid grid-cols-2 md:grid-cols-5 gap-2 pt-4 border-t border-zinc-800">
-        <Link href="/command" className="text-center py-3 px-2 rounded-lg border border-zinc-800 hover:border-zinc-600 transition-colors text-sm text-zinc-400 hover:text-zinc-200">Command</Link>
-        <Link href="/decisions" className="text-center py-3 px-2 rounded-lg border border-zinc-800 hover:border-zinc-600 transition-colors text-sm text-zinc-400 hover:text-zinc-200">Decisions ({overdueDecisions.length})</Link>
-        <Link href="/dependencies" className="text-center py-3 px-2 rounded-lg border border-zinc-800 hover:border-zinc-600 transition-colors text-sm text-zinc-400 hover:text-zinc-200">Dependencies</Link>
-        <Link href="/review" className="text-center py-3 px-2 rounded-lg border border-zinc-800 hover:border-zinc-600 transition-colors text-sm text-zinc-400 hover:text-zinc-200">Review</Link>
-        <Link href="/admin" className="text-center py-3 px-2 rounded-lg border border-zinc-800 hover:border-zinc-600 transition-colors text-sm text-zinc-400 hover:text-zinc-200">Admin</Link>
+      <nav className="flex flex-wrap gap-2 pt-4 border-t border-zinc-800">
+        <Link href="/today" className="px-4 py-2.5 rounded-xl border-2 border-emerald-800/50 bg-emerald-950/20 hover:border-emerald-700/50 text-sm text-emerald-400 font-medium transition-colors">Today&apos;s Actions</Link>
+        <Link href="/decisions" className="px-3 py-2 rounded-lg border border-zinc-800 hover:border-zinc-600 text-sm text-zinc-400 hover:text-zinc-200">Decisions</Link>
+        <Link href="/milestones" className="px-3 py-2 rounded-lg border border-zinc-800 hover:border-zinc-600 text-sm text-zinc-400 hover:text-zinc-200">Milestones</Link>
+        <Link href="/dependencies" className="px-3 py-2 rounded-lg border border-zinc-800 hover:border-zinc-600 text-sm text-zinc-400 hover:text-zinc-200">Dependencies</Link>
+        <Link href="/admin" className="px-3 py-2 rounded-lg border border-zinc-800 hover:border-zinc-600 text-sm text-zinc-400 hover:text-zinc-200">Admin</Link>
+        <Link href="/trust" className="px-3 py-2 rounded-lg border border-zinc-800 hover:border-zinc-600 text-sm text-zinc-400 hover:text-zinc-200">Trust</Link>
       </nav>
     </div>
   );
