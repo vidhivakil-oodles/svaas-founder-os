@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { loadState, saveState, AppState, ActivityEntry, DailyEntry, ReviewEntry, DATA_VERSION } from './persistence';
 import { useToast } from './toast-provider';
+import { getWeekNumber } from './venture-config';
 import type { Task, Decision, Milestone, WaitingOn } from '@/types';
 
 interface StateContextValue {
@@ -27,6 +28,8 @@ interface StateContextValue {
   addManualNote: (note: string, streamSlug?: string) => void;
   // Cancel
   cancelTask: (taskId: string, reason?: string) => void;
+  // Weekly commitment
+  setWeeklyCommitment: (text: string) => void;
 }
 
 const StateContext = createContext<StateContextValue | null>(null);
@@ -112,7 +115,7 @@ export function StateProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  // Task: Mark Done
+  // Task: Mark Done — shows "what moved because of this"
   const markTaskDone = useCallback((taskId: string) => {
     setState(prev => {
       const task = prev.tasks.find(t => t.id === taskId);
@@ -128,10 +131,46 @@ export function StateProvider({ children }: { children: ReactNode }) {
     if (task) {
       logActivity(task.streamId, 'task_completed', taskId);
       updateStreamMovement(task.streamId);
-      addJournalEntry('task_completed', task.title, taskId, task.streamId);
-      showToast(`Done: ${task.title.slice(0, 50)}`, 'success');
+
+      // Compute what moved because of this
+      const impacts: string[] = [];
+
+      // Check if this unblocks other tasks (tasks that mention this one in notes/dependencies)
+      const streamTasks = state.tasks.filter(t => t.streamId === task.streamId && t.status !== 'done' && t.id !== taskId);
+      const remainingInStream = streamTasks.length;
+      const stream = state.streams.find(s => s.id === task.streamId);
+
+      // Check milestone progress
+      const streamMilestones = state.milestones.filter(m => m.phase === task.phase && m.status !== 'achieved');
+      if (streamMilestones.length > 0) {
+        impacts.push(`${stream?.name || 'Stream'} milestone progresses`);
+      }
+
+      // If this was a blocker for the stream
+      if (task.priority === 'CRITICAL') {
+        impacts.push(`${stream?.name || 'Stream'} critical path advances`);
+      }
+
+      // If few tasks remain
+      if (remainingInStream <= 3 && remainingInStream > 0) {
+        impacts.push(`Only ${remainingInStream} task${remainingInStream > 1 ? 's' : ''} remain in ${stream?.name || 'stream'}`);
+      }
+
+      // Check if any decisions are unblocked
+      const unblockedDecisions = state.decisions.filter(d => d.status === 'pending' && d.blocksTasks.includes(taskId));
+      if (unblockedDecisions.length > 0) {
+        impacts.push(`Decision unlocked: ${unblockedDecisions[0].title.slice(0, 40)}`);
+      }
+
+      // Build impact message
+      const impactMsg = impacts.length > 0
+        ? `✓ ${task.title.slice(0, 35)} — ${impacts[0]}`
+        : `✓ ${task.title.slice(0, 50)} — ${stream?.name || ''} advances`;
+
+      addJournalEntry('task_completed', task.title, taskId, task.streamId, { impacts });
+      showToast(impactMsg, 'success');
     }
-  }, [state.tasks, logActivity, updateStreamMovement, addJournalEntry, showToast]);
+  }, [state.tasks, state.streams, state.milestones, state.decisions, logActivity, updateStreamMovement, addJournalEntry, showToast]);
 
   // Task: Block
   const blockTask = useCallback((taskId: string, reason: string) => {
@@ -166,19 +205,27 @@ export function StateProvider({ children }: { children: ReactNode }) {
     }
   }, [state.tasks, logActivity, updateStreamMovement, addJournalEntry, showToast]);
 
-  // Task: Commit Today
+  // Task: Commit Today (SINGLE COMMITMENT — only one task can be committed)
   const commitTask = useCallback((taskId: string) => {
     setState(prev => ({
       ...prev,
-      tasks: prev.tasks.map(t =>
-        t.id === taskId ? { ...t, status: 'committed_today' as const, committedAt: new Date().toISOString() } : t
-      ),
+      tasks: prev.tasks.map(t => {
+        // Revert any previously committed task back to not_started
+        if (t.status === 'committed_today' && t.id !== taskId) {
+          return { ...t, status: 'not_started' as const, committedAt: null };
+        }
+        // Set the new commitment
+        if (t.id === taskId) {
+          return { ...t, status: 'committed_today' as const, committedAt: new Date().toISOString() };
+        }
+        return t;
+      }),
     }));
     const task = state.tasks.find(t => t.id === taskId);
     if (task) {
       logActivity(task.streamId, 'task_status_changed', taskId);
       addJournalEntry('task_committed', task.title, taskId, task.streamId);
-      showToast(`Committed today: ${task.title.slice(0, 40)}`, 'success');
+      showToast(`Today's commitment: ${task.title.slice(0, 50)}`, 'success');
     }
   }, [state.tasks, logActivity, addJournalEntry, showToast]);
 
@@ -339,6 +386,20 @@ export function StateProvider({ children }: { children: ReactNode }) {
     }
   }, [state.tasks, logActivity, addJournalEntry, showToast]);
 
+  // Weekly Commitment
+  const setWeeklyCommitment = useCallback((text: string) => {
+    setState(prev => ({
+      ...prev,
+      weeklyCommitment: {
+        text,
+        weekNumber: getWeekNumber(),
+        createdAt: new Date().toISOString(),
+      },
+    }));
+    addJournalEntry('weekly_commitment', `Next week: ${text}`);
+    showToast(`Week commitment set: ${text.slice(0, 40)}`, 'success');
+  }, [addJournalEntry, showToast]);
+
   return (
     <StateContext.Provider value={{
       state,
@@ -356,6 +417,7 @@ export function StateProvider({ children }: { children: ReactNode }) {
       toggleMilestoneGate,
       addManualNote,
       cancelTask,
+      setWeeklyCommitment,
     }}>
       {children}
     </StateContext.Provider>

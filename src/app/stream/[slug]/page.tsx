@@ -55,9 +55,14 @@ export default function StreamPage() {
   const dayNumber = Math.max(1, Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
   const actionable = getActionableTasks(tasks, dayNumber);
-  const top10 = actionable.slice(0, 10);
-  const remaining = actionable.slice(10);
+  const top10 = actionable.slice(0, 5); // Top 5 per steering requirement
+  const remaining = actionable.slice(5);
   const doneTasks = tasks.filter(t => t.status === 'done');
+
+  // Find next milestone for this stream (by phase)
+  const streamPhases = [...new Set(tasks.map(t => t.phase))];
+  const nextMilestone = state.milestones.find(m => streamPhases.includes(m.phase) && m.status !== 'achieved');
+  const milestoneGatesRemaining = nextMilestone ? nextMilestone.gateCriteria.filter(g => !g.met).length : 0;
 
   function handleBlock(taskId: string) {
     if (!blockReason.trim()) return;
@@ -126,6 +131,15 @@ export default function StreamPage() {
         </div>
       )}
 
+      {/* Next Milestone */}
+      {nextMilestone && (
+        <div className="border border-emerald-900/40 bg-emerald-950/10 rounded-lg p-4">
+          <h3 className="text-sm font-medium text-zinc-400 mb-1">Next Milestone</h3>
+          <p className="text-zinc-200 font-medium">{nextMilestone.title}</p>
+          <p className="text-xs text-zinc-500 mt-1">{milestoneGatesRemaining} requirement{milestoneGatesRemaining !== 1 ? 's' : ''} remaining &bull; Target Day {nextMilestone.dayTarget}</p>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-5 gap-2">
         <div className="border border-zinc-800 rounded-lg p-3 text-center">
@@ -158,7 +172,7 @@ export default function StreamPage() {
       {/* Top 10 Actionable Tasks */}
       <div className="space-y-1">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-zinc-400">Top 10 — What Needs Attention</h3>
+          <h3 className="text-sm font-medium text-zinc-400">Top 5 — What Needs Attention</h3>
           <span className="text-xs text-zinc-600">{actionable.length} actionable of {tasks.length} total</span>
         </div>
         {top10.length === 0 ? (

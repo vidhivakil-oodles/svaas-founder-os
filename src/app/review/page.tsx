@@ -94,7 +94,8 @@ const STEPS = [
 
 export default function WeeklyReviewPage() {
   const [currentStep, setCurrentStep] = useState(1);
-  const { state } = useAppState();
+  const [nextWeekCommitment, setNextWeekCommitment] = useState('');
+  const { state, setWeeklyCommitment } = useAppState();
   const data = calculateReviewData(state);
 
   return (
@@ -318,13 +319,38 @@ export default function WeeklyReviewPage() {
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-zinc-100">Close Week</h2>
 
-            <div className="space-y-3">
-              <p className="text-sm text-zinc-400">
-                Week {data.weekNumber} reviewed. Your venture memory is intact.
-              </p>
-              <button className="w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md font-medium transition-colors">
-                ✓ Close Week {data.weekNumber}
-              </button>
+            <div className="space-y-4">
+              <div className="border-2 border-amber-800/40 bg-amber-950/10 rounded-lg p-4 space-y-3">
+                <p className="text-sm font-medium text-amber-400">What is your single commitment for next week?</p>
+                <p className="text-xs text-zinc-500">One thing. The most important thing. Not three things. One.</p>
+                <input
+                  value={nextWeekCommitment}
+                  onChange={e => setNextWeekCommitment(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && nextWeekCommitment.trim()) { setWeeklyCommitment(nextWeekCommitment.trim()); } }}
+                  placeholder="e.g., Get LLP registration filed"
+                  className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-700/50"
+                />
+                {nextWeekCommitment.trim() && (
+                  <button
+                    onClick={() => setWeeklyCommitment(nextWeekCommitment.trim())}
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded-lg font-medium"
+                  >
+                    Lock It In
+                  </button>
+                )}
+                {state.weeklyCommitment && state.weeklyCommitment.weekNumber === data.weekNumber && (
+                  <p className="text-xs text-emerald-400 mt-2">✓ Set: &ldquo;{state.weeklyCommitment.text}&rdquo;</p>
+                )}
+              </div>
+
+              <div className="border-t border-zinc-800 pt-4">
+                <p className="text-sm text-zinc-400">
+                  Week {data.weekNumber} reviewed. Your venture memory is intact.
+                </p>
+                <button className="w-full mt-3 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md font-medium transition-colors">
+                  ✓ Close Week {data.weekNumber}
+                </button>
+              </div>
             </div>
           </div>
         )}

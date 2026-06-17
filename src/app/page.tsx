@@ -23,7 +23,7 @@ function getCurrentPhaseIndex(tasks: any[]) {
 }
 
 export default function HomePage() {
-  const { state, isLoaded, markTaskDone, acceptDecisionDefault } = useAppState();
+  const { state, isLoaded, markTaskDone, acceptDecisionDefault, commitTask } = useAppState();
   const [showMore, setShowMore] = useState(false);
   const [scheduledConvo, setScheduledConvo] = useState(false);
   const dayNumber = getDayNumber();
@@ -130,10 +130,67 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Top Task — start/complete */}
-        {topTask && topTask.id !== conversation?.id && topTask.id !== bottleneckTask?.id && (
+        {/* Waiting On — overdue alerts */}
+        {(() => {
+          const today = new Date(); today.setHours(0,0,0,0);
+          const overdueWait = state.tasks.filter((t: any) => t.status === 'waiting_on' && t.waitingOnDate && new Date(t.waitingOnDate) < today);
+          if (overdueWait.length === 0) return null;
+          const top = overdueWait[0];
+          const daysLate = Math.floor((today.getTime() - new Date(top.waitingOnDate!).getTime()) / (1000*60*60*24));
+          return (
+            <div className="border border-amber-900/40 bg-amber-950/10 rounded-xl p-4 space-y-3">
+              <p className="text-xs text-amber-400 uppercase tracking-wide font-medium">⚠ Follow Up Overdue</p>
+              <p className="text-zinc-100 font-medium">{top.title}</p>
+              <p className="text-xs text-zinc-500">{top.waitingOnPerson} is {daysLate}d late</p>
+              <p className="text-xs text-amber-400/70">If ignored → this dependency stays unresolved. Follow up today.</p>
+              <div className="flex gap-2">
+                <button onClick={() => markTaskDone(top.id)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-medium">Received</button>
+                <Link href="/today" className="px-3 py-1.5 border border-amber-900/40 text-amber-400 text-xs rounded-lg hover:border-amber-700/40">
+                  {overdueWait.length > 1 ? `+${overdueWait.length - 1} more →` : 'Details →'}
+                </Link>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Today's Commitment — Hero */}
+        {(() => {
+          const commitment = state.tasks.find((t: any) => t.status === 'committed_today');
+          if (commitment) {
+            return (
+              <div className="border-2 border-emerald-600/50 bg-emerald-950/15 rounded-xl p-4 space-y-3">
+                <p className="text-xs text-emerald-400 uppercase tracking-wide font-medium">Today&apos;s Commitment</p>
+                <p className="text-zinc-100 font-semibold text-lg">{commitment.title}</p>
+                <p className="text-xs text-zinc-500">{commitment.department} &bull; {commitment.owner}</p>
+                <div className="flex gap-2">
+                  <button onClick={() => markTaskDone(commitment.id)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-medium">✓ Done</button>
+                  <Link href="/today" className="px-3 py-1.5 border border-emerald-900/40 text-emerald-400 text-xs rounded-lg hover:border-emerald-700/40">Manage →</Link>
+                </div>
+              </div>
+            );
+          }
+          // No commitment yet — suggest committing the top task
+          if (topTask) {
+            return (
+              <div className="border border-zinc-800 bg-zinc-900/30 rounded-xl p-4 space-y-3">
+                <p className="text-xs text-zinc-500 uppercase tracking-wide font-medium">No Commitment Yet</p>
+                <p className="text-zinc-100 font-medium">{topTask.title}</p>
+                <p className="text-xs text-zinc-500">Suggested based on critical path</p>
+                <p className="text-xs text-red-400/70">If ignored → {topTask.notesDependencies ? topTask.notesDependencies.slice(0, 80) : 'Launch timeline extends.'}</p>
+                <div className="flex gap-2">
+                  <button onClick={() => commitTask(topTask.id)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-medium">Commit Today</button>
+                  <Link href="/today" className="px-3 py-1.5 border border-zinc-700 text-zinc-400 text-xs rounded-lg hover:border-zinc-500">Choose different →</Link>
+                </div>
+              </div>
+            );
+          }
+          return null;
+        })()}
+
+        {/* Top Task — only show if different from commitment and not already shown */}
+        {topTask && topTask.id !== conversation?.id && topTask.id !== bottleneckTask?.id && topTask.status !== 'committed_today' && (
           <div className="border border-zinc-800 bg-zinc-900/30 rounded-xl p-4 space-y-3">
-            <p className="text-xs text-zinc-400 uppercase tracking-wide font-medium">Top Task</p>
+            <p className="text-xs text-zinc-400 uppercase tracking-wide font-medium">Next Action</p>
             <p className="text-zinc-100 font-medium">{topTask.title}</p>
             <p className="text-xs text-zinc-500">{topTask.owner} &bull; Due Day {topTask.dayRangeEnd || '—'}</p>
             <p className="text-xs text-zinc-500">If ignored → {topTask.notesDependencies ? topTask.notesDependencies.slice(0, 80) : 'Launch timeline extends.'}</p>
@@ -167,6 +224,14 @@ export default function HomePage() {
         <div className="border border-zinc-800 rounded-xl p-4 text-center">
           <p className="text-zinc-500 text-sm">Start your streak today.</p>
           <Link href="/today" className="text-emerald-400 text-sm font-medium hover:text-emerald-300">Complete your first task →</Link>
+        </div>
+      )}
+
+      {/* Weekly Commitment reminder (show if set recently) */}
+      {state.weeklyCommitment && state.weeklyCommitment.weekNumber >= weekNumber - 1 && (
+        <div className="border border-zinc-800 rounded-xl p-4">
+          <p className="text-xs text-zinc-500 mb-1">This week&apos;s focus (set during review):</p>
+          <p className="text-sm text-zinc-200 font-medium">&ldquo;{state.weeklyCommitment.text}&rdquo;</p>
         </div>
       )}
 

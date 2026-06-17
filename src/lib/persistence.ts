@@ -45,7 +45,14 @@ export interface AppState {
   dailyEngagement: DailyEntry[];
   reviewHistory: ReviewEntry[];
   journal: JournalEntry[];
+  weeklyCommitment: WeeklyCommitment | null;
   lastUpdated: string;
+}
+
+export interface WeeklyCommitment {
+  text: string;
+  weekNumber: number;
+  createdAt: string;
 }
 
 export interface ActivityEntry {
@@ -85,6 +92,7 @@ function getDefaultState(): AppState {
     dailyEngagement: [],
     reviewHistory: [],
     journal: [],
+    weeklyCommitment: null,
     lastUpdated: new Date().toISOString(),
   };
 }
@@ -112,6 +120,8 @@ export function loadState(): AppState {
       if (parsed.tasks && parsed.decisions && parsed.streams) {
         // Backfill journal if missing (added in this version)
         if (!parsed.journal) parsed.journal = [];
+        // Backfill weeklyCommitment if missing
+        if (parsed.weeklyCommitment === undefined) parsed.weeklyCommitment = null;
         return parsed;
       }
     }

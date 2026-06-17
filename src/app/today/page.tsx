@@ -67,7 +67,14 @@ export default function TodayPage() {
 
   function handleDone(task: any) {
     markTaskDone(task.id);
-    setWins(prev => [...prev, `✓ ${task.title} — ${task.department} stream advances.`]);
+    // Show impact in wins log
+    const stream = state.streams.find((s: any) => s.id === task.streamId);
+    const streamName = stream?.name || task.department;
+    const remaining = state.tasks.filter((t: any) => t.streamId === task.streamId && t.status !== 'done' && t.id !== task.id).length;
+    let impact = `${streamName} advances.`;
+    if (task.priority === 'CRITICAL') impact = `Critical path unblocked — ${streamName} moves forward.`;
+    if (remaining <= 3 && remaining > 0) impact = `${streamName}: only ${remaining} tasks remain!`;
+    setWins(prev => [...prev, `✓ ${task.title} — ${impact}`]);
   }
 
   function handleWaitingOn(taskId: string) {
@@ -133,19 +140,19 @@ export default function TodayPage() {
         </div>
       )}
 
-      {/* My Commitments Today */}
+      {/* TODAY'S SINGLE COMMITMENT — Hero Card */}
       {committed.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-sm font-medium text-emerald-400 uppercase tracking-wide">My Commitments Today</h2>
-          {committed.map((t: any) => (
-            <div key={t.id} className="border-2 border-emerald-700/50 bg-emerald-950/20 rounded-xl p-4 space-y-3">
+          <h2 className="text-sm font-medium text-emerald-400 uppercase tracking-wide">Today&apos;s Commitment</h2>
+          {committed.slice(0, 1).map((t: any) => (
+            <div key={t.id} className="border-2 border-emerald-600/60 bg-emerald-950/20 rounded-xl p-5 space-y-3">
               <div>
-                <p className="text-zinc-100 font-medium">{t.title}</p>
-                <p className="text-xs text-zinc-500">{t.department} &bull; {t.owner}</p>
-                <p className="text-xs text-red-400/70 mt-1">If ignored → {getConsequence(t)}</p>
+                <p className="text-xl text-zinc-50 font-semibold">{t.title}</p>
+                <p className="text-xs text-zinc-500 mt-1">{t.department} &bull; {t.owner}</p>
+                <p className="text-xs text-red-400/70 mt-2">If ignored → {getConsequence(t)}</p>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => handleDone(t)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-medium">✓ Done</button>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button onClick={() => handleDone(t)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-lg font-medium">✓ Done</button>
                 <button onClick={() => startTask(t.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg">Start</button>
                 <button onClick={() => setShowWaitingForm(t.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-blue-400 text-xs rounded-lg">Waiting On</button>
                 <button onClick={() => setShowDeferForm(t.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-500 text-xs rounded-lg">Defer</button>
