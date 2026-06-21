@@ -12,10 +12,12 @@ interface StateContextValue {
   // Task mutations
   markTaskDone: (taskId: string) => void;
   blockTask: (taskId: string, reason: string) => void;
+  unblockTask: (taskId: string) => void;
   startTask: (taskId: string) => void;
   commitTask: (taskId: string) => void;
   waitingOnTask: (taskId: string, person: string, date: string, notes?: string) => void;
   deferTask: (taskId: string, reason: string, reviewDate: string) => void;
+  undoLastDone: () => void;
   // Decision mutations
   acceptDecisionDefault: (decisionId: string) => void;
   makeDecision: (decisionId: string, option: string) => void;
@@ -30,6 +32,8 @@ interface StateContextValue {
   cancelTask: (taskId: string, reason?: string) => void;
   // Weekly commitment
   setWeeklyCommitment: (text: string) => void;
+  // Review
+  closeWeek: () => void;
 }
 
 const StateContext = createContext<StateContextValue | null>(null);
@@ -400,16 +404,75 @@ export function StateProvider({ children }: { children: ReactNode }) {
     showToast(`Week commitment set: ${text.slice(0, 40)}`, 'success');
   }, [addJournalEntry, showToast]);
 
+  // Task: Unblock (move back to not_started)
+  const unblockTask = useCallback((taskId: string) => {
+    setState(prev => ({
+      ...prev,
+      tasks: prev.tasks.map(t =>
+        t.id === taskId ? { ...t, status: 'not_started' as const, blockedReason: null } : t
+      ),
+    }));
+    const task = state.tasks.find(t => t.id === taskId);
+    if (task) {
+      logActivity(task.streamId, 'task_status_changed', taskId);
+      addJournalEntry('task_unblocked', `Unblocked: ${task.title}`, taskId, task.streamId);
+      showToast(`Unblocked: ${task.title.slice(0, 40)}`, 'success');
+    }
+  }, [state.tasks, logActivity, addJournalEntry, showToast]);
+
+  // Undo last Done (reverts the most recently completed task)
+  const undoLastDone = useCallback(() => {
+    setState(prev => {
+      // Find the most recently completed task
+      const doneTasks = prev.tasks
+        .filter(t => t.status === 'done' && t.completedAt)
+        .sort((a, b) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime());
+      const lastDone = doneTasks[0];
+      if (!lastDone) return prev;
+
+      return {
+        ...prev,
+        tasks: prev.tasks.map(t =>
+          t.id === lastDone.id ? { ...t, status: 'not_started' as const, completedAt: null } : t
+        ),
+      };
+    });
+    showToast('Undone. Task reverted.', 'info');
+  }, [showToast]);
+
+  // Close Week (persists review history + journal entry)
+  const closeWeek = useCallback(() => {
+    const weekNumber = getWeekNumber();
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    const completedThisWeek = state.tasks.filter(t => t.status === 'done' && t.completedAt && new Date(t.completedAt) >= weekStart).length;
+
+    setState(prev => ({
+      ...prev,
+      reviewHistory: [...prev.reviewHistory, {
+        weekNumber,
+        completedAt: new Date().toISOString(),
+        tasksCompletedCount: completedThisWeek,
+        momentumScoreAtClose: 0,
+      }],
+    }));
+    addJournalEntry('week_closed', `Week ${weekNumber} closed. ${completedThisWeek} tasks completed.`, undefined, undefined, { weekNumber, completedThisWeek });
+    showToast(`Week ${weekNumber} closed. ${completedThisWeek} tasks done.`, 'success');
+  }, [state.tasks, addJournalEntry, showToast]);
+
   return (
     <StateContext.Provider value={{
       state,
       isLoaded,
       markTaskDone,
       blockTask,
+      unblockTask,
       startTask,
       commitTask,
       waitingOnTask,
       deferTask,
+      undoLastDone,
       acceptDecisionDefault,
       makeDecision: makeDecisionFn,
       deferDecision: deferDecisionFn,
@@ -418,6 +481,7 @@ export function StateProvider({ children }: { children: ReactNode }) {
       addManualNote,
       cancelTask,
       setWeeklyCommitment,
+      closeWeek,
     }}>
       {children}
     </StateContext.Provider>

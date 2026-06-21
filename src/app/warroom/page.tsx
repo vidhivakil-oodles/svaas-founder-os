@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { AppNav, BackToHome } from '@/components/shared/nav';
 
 export default function WarRoomPage() {
-  const { state, markTaskDone, acceptDecisionDefault } = useAppState();
+  const { state, markTaskDone, acceptDecisionDefault, unblockTask } = useAppState();
   const dayNumber = getDayNumber();
 
   const overdueTasks = state.tasks
@@ -65,9 +65,17 @@ export default function WarRoomPage() {
           <h2 className="text-sm font-medium text-amber-400 uppercase tracking-wide">Blocked ({blockedTasks.length})</h2>
           {blockedTasks.map((t: any) => (
             <div key={t.id} className="border border-amber-900/50 bg-amber-950/10 rounded-xl p-4">
-              <p className="text-zinc-100 font-medium">{t.title}</p>
-              <p className="text-xs text-red-400 mt-0.5">Reason: {t.blockedReason}</p>
-              <p className="text-xs text-zinc-500 mt-0.5">{t.department} &bull; {t.owner}</p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-zinc-100 font-medium">{t.title}</p>
+                  <p className="text-xs text-red-400 mt-0.5">Reason: {t.blockedReason}</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">{t.department} &bull; {t.owner}</p>
+                </div>
+                <div className="flex gap-1.5 shrink-0">
+                  <button onClick={() => unblockTask(t.id)} className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs rounded-lg font-medium">Unblock</button>
+                  <button onClick={() => markTaskDone(t.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg">Done</button>
+                </div>
+              </div>
             </div>
           ))}
         </div>
