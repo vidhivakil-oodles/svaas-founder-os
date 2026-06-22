@@ -113,42 +113,41 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* SECTION 1: TODAY'S COMMITMENT */}
+      {/* SECTION 1: TODAY'S COMMITMENT — Dominant: Sand/Warm */}
       {commitment ? (
-        <section className="border-2 border-[var(--svaas-brown)]/20 bg-[var(--svaas-cream)] rounded-2xl p-5 space-y-3">
+        <section className="border-2 border-[var(--svaas-sand)]/40 bg-[var(--svaas-cream)] rounded-2xl p-6 space-y-4">
           <p className="text-xs text-[var(--svaas-brown-light)]">Today&apos;s commitment</p>
-          <p className="text-xl font-semibold text-[var(--svaas-brown-dark)] leading-tight">{commitment.title}</p>
-          <div className="space-y-1 text-sm text-[var(--svaas-brown)]">
+          <p className="text-2xl font-semibold text-[var(--svaas-brown-dark)] leading-tight">{commitment.title}</p>
+          <div className="space-y-1.5 text-sm text-[var(--svaas-brown)]">
             <p>{getWhy(commitment, state)}</p>
             <p className="text-[var(--svaas-olive)]">If done: {getIfDone(commitment, state)}</p>
             <p className="text-[var(--svaas-clay)]">If ignored: {getConsequence(commitment)}</p>
           </div>
-          <div className="flex gap-2 pt-1">
-            <button onClick={() => markTaskDone(commitment.id)} className="px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium">Done</button>
-            <Link href="/today" className="px-4 py-2 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-sm rounded-xl">Manage</Link>
+          <div className="pt-2">
+            <button onClick={() => markTaskDone(commitment.id)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-sm rounded-xl font-medium">Done</button>
           </div>
         </section>
       ) : suggestedTask ? (
-        <section className="border border-[var(--svaas-sand)] bg-[var(--svaas-cream)] rounded-2xl p-5 space-y-3">
+        <section className="border-2 border-[var(--svaas-sand)]/40 bg-[var(--svaas-cream)] rounded-2xl p-6 space-y-4">
           <p className="text-xs text-[var(--svaas-brown-light)]">Today&apos;s commitment</p>
-          <p className="text-lg font-medium text-[var(--svaas-brown-dark)] leading-tight">{suggestedTask.title}</p>
-          <div className="space-y-1 text-sm text-[var(--svaas-brown)]">
+          <p className="text-xl font-medium text-[var(--svaas-brown-dark)] leading-tight">{suggestedTask.title}</p>
+          <div className="space-y-1.5 text-sm text-[var(--svaas-brown)]">
             <p>{getWhy(suggestedTask, state)}</p>
             <p className="text-[var(--svaas-olive)]">If done: {getIfDone(suggestedTask, state)}</p>
             <p className="text-[var(--svaas-clay)]">If ignored: {getConsequence(suggestedTask)}</p>
           </div>
-          <div className="flex gap-2 pt-1">
-            <button onClick={() => commitTask(suggestedTask.id)} className="px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium">Commit today</button>
-            <Link href="/today" className="px-4 py-2 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-sm rounded-xl">Choose different</Link>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => commitTask(suggestedTask.id)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-sm rounded-xl font-medium">Commit today</button>
+            <Link href="/today" className="px-4 py-2.5 text-[var(--svaas-brown-light)] text-sm">Choose different</Link>
           </div>
         </section>
       ) : null}
 
-      {/* SECTION 2: BIGGEST BLOCKER */}
+      {/* SECTION 2: BIGGEST BLOCKER — Clay wash */}
       {biggestBlocker && (
-        <section className="border border-[var(--svaas-clay)]/20 bg-[var(--svaas-clay-light)] rounded-2xl p-5 space-y-3">
-          <p className="text-xs text-[var(--svaas-clay)]">Stuck</p>
-          <p className="text-lg font-medium text-[var(--svaas-brown-dark)] leading-tight">{biggestBlocker.title}</p>
+        <section className="border border-[var(--svaas-clay)]/15 bg-[var(--svaas-clay-light)] rounded-2xl p-5 space-y-3">
+          <p className="text-xs font-medium text-[var(--svaas-clay)]">Stuck</p>
+          <p className="text-base font-medium text-[var(--svaas-brown-dark)] leading-tight">{biggestBlocker.title}</p>
           <div className="space-y-1 text-sm">
             <p className="text-[var(--svaas-brown)]">
               {biggestBlocker.blockerType === 'blocked'
@@ -158,65 +157,65 @@ export default function HomePage() {
             <p className="text-[var(--svaas-clay)]">If not resolved: {getConsequence(biggestBlocker)}</p>
           </div>
           <div className="pt-1">
-            <Link href="/warroom" className="px-4 py-2 border border-[var(--svaas-clay)]/30 text-[var(--svaas-clay)] text-sm rounded-xl inline-block">
-              War Room ({blockers.length})
+            <Link href="/warroom" className="text-sm text-[var(--svaas-clay)] font-medium">
+              War Room ({blockers.length}) →
             </Link>
           </div>
         </section>
       )}
 
-      {/* SECTION 3: DECISION REQUIRED */}
+      {/* SECTION 3: DECISION REQUIRED — Olive wash */}
       {topDecision && (
-        <section className="border border-[var(--svaas-amber)]/20 bg-[var(--svaas-amber-light)] rounded-2xl p-5 space-y-3">
-          <p className="text-xs text-[var(--svaas-amber)]">Decision needed</p>
-          <p className="text-lg font-medium text-[var(--svaas-brown-dark)] leading-tight">{topDecision.title}</p>
+        <section className="border border-[var(--svaas-olive)]/10 bg-[var(--svaas-olive-light)] rounded-2xl p-5 space-y-3">
+          <p className="text-xs font-medium text-[var(--svaas-olive)]">Decision needed</p>
+          <p className="text-base font-medium text-[var(--svaas-brown-dark)] leading-tight">{topDecision.title}</p>
           <div className="space-y-1 text-sm">
             <p className="text-[var(--svaas-brown)]">{topDecision.context || 'Unlocks dependent work.'}</p>
-            <p className="text-[var(--svaas-amber)]">
+            <p className="text-[var(--svaas-olive)]">
               If not decided: {topDecision.streamsAffected > 0
                 ? `${topDecision.streamsAffected} stream${topDecision.streamsAffected > 1 ? 's' : ''} stall.`
                 : 'Dependent work stays frozen.'}
             </p>
           </div>
           <div className="pt-1">
-            <button onClick={() => acceptDecisionDefault(topDecision.id)} className="px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium">Accept: {topDecision.defaultOption}</button>
+            <button onClick={() => acceptDecisionDefault(topDecision.id)} className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-sm rounded-xl font-medium">Accept: {topDecision.defaultOption}</button>
           </div>
         </section>
       )}
 
-      {/* SECTION 4: WAITING */}
+      {/* SECTION 4: WAITING — Muted herb/sage wash */}
       {overdueWaiting.length > 0 && (
-        <section className="space-y-3">
-          <p className="text-xs text-[var(--svaas-slate)]">Waiting - overdue</p>
+        <section className="space-y-2">
+          <p className="text-xs font-medium text-[var(--svaas-slate)]">Waiting — overdue</p>
           {overdueWaiting.map((t: any) => (
-            <div key={t.id} className="border border-[var(--svaas-slate)]/15 bg-[var(--svaas-slate-light)] rounded-2xl p-4">
+            <div key={t.id} className="border border-[var(--svaas-slate)]/10 bg-[var(--svaas-slate-light)] rounded-2xl p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-[var(--svaas-brown-dark)]">{t.title}</p>
-                  <p className="text-xs text-[var(--svaas-slate)] mt-0.5">{t.waitingOnPerson} · {t.daysLate}d late</p>
+                  <p className="text-xs text-[var(--svaas-brown-light)] mt-0.5">{t.waitingOnPerson} · {t.daysLate}d late</p>
                 </div>
-                <button onClick={() => markTaskDone(t.id)} className="px-3 py-1.5 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-xs rounded-xl shrink-0">Received</button>
+                <button onClick={() => markTaskDone(t.id)} className="px-3 py-1.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-xs rounded-xl shrink-0">Received</button>
               </div>
             </div>
           ))}
         </section>
       )}
 
-      {/* SECTION 5: THIS WEEK */}
-      <section className="border border-[var(--svaas-sand)] bg-[var(--svaas-cream)] rounded-2xl p-4">
+      {/* SECTION 5: THIS WEEK — Lightest, lowest weight */}
+      <section className="rounded-2xl p-4">
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs text-[var(--svaas-brown-light)]">This week</p>
-          <Link href="/review" className="text-xs text-[var(--svaas-brown-light)] hover:text-[var(--svaas-brown)]">Review</Link>
+          <Link href="/review" className="text-xs text-[var(--svaas-brown-light)]">Review →</Link>
         </div>
         <p className="text-sm text-[var(--svaas-brown)]">
-          {completedThisWeek > 0 && <><span className="font-medium text-[var(--svaas-olive)]">{completedThisWeek}</span> done</>}
-          {overdueCount > 0 && <> · <span className="font-medium text-[var(--svaas-clay)]">{overdueCount}</span> overdue</>}
-          {blockedCount > 0 && <> · <span className="font-medium text-[var(--svaas-amber)]">{blockedCount}</span> blocked</>}
-          {waitingOn.length > 0 && <> · <span className="font-medium text-[var(--svaas-slate)]">{waitingOn.length}</span> waiting</>}
+          {completedThisWeek > 0 && <><span className="font-medium">{completedThisWeek}</span> done</>}
+          {overdueCount > 0 && <> · <span className="font-medium">{overdueCount}</span> overdue</>}
+          {blockedCount > 0 && <> · <span className="font-medium">{blockedCount}</span> blocked</>}
+          {waitingOn.length > 0 && <> · <span className="font-medium">{waitingOn.length}</span> waiting</>}
           {completedThisWeek === 0 && overdueCount === 0 && blockedCount === 0 && waitingOn.length === 0 && 'No activity yet.'}
         </p>
         {state.weeklyCommitment && state.weeklyCommitment.weekNumber >= weekNumber - 1 && (
-          <p className="text-xs text-[var(--svaas-brown-light)] mt-2 pt-2 border-t border-[var(--svaas-sand)]">
+          <p className="text-xs text-[var(--svaas-brown-light)] mt-2">
             Focus: &ldquo;{state.weeklyCommitment.text}&rdquo;
           </p>
         )}

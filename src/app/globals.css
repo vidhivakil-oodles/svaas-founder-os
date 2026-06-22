@@ -53,15 +53,15 @@
   --svaas-sand: #BCA890;
   --svaas-brown: #775B45;
   --svaas-brown-dark: #2B2414;
-  --svaas-brown-light: #BCA890;
+  --svaas-brown-light: #9C8B7A;
   --svaas-olive: #585D27;
-  --svaas-olive-light: #E8EAD8;
+  --svaas-olive-light: #E5E8D6;
   --svaas-amber: #775B45;
-  --svaas-amber-light: #F2EDE6;
-  --svaas-clay: #775B45;
-  --svaas-clay-light: #F0EAE4;
-  --svaas-slate: #585D27;
-  --svaas-slate-light: #EDEEE8;
+  --svaas-amber-light: #EDE7DF;
+  --svaas-clay: #6B4A36;
+  --svaas-clay-light: #E8DDD4;
+  --svaas-slate: #4A5423;
+  --svaas-slate-light: #E2E5D8;
 }
 
 :root {
@@ -72,27 +72,27 @@
   --popover: #F2EDE6;
   --popover-foreground: #2B2414;
   --primary: #2B2414;
-  --primary-foreground: #E9E4DC;
+  --primary-foreground: #F2EDE6;
   --secondary: #F2EDE6;
   --secondary-foreground: #775B45;
   --muted: #F2EDE6;
-  --muted-foreground: #BCA890;
+  --muted-foreground: #9C8B7A;
   --accent: #F2EDE6;
   --accent-foreground: #775B45;
-  --destructive: #775B45;
+  --destructive: #6B4A36;
   --border: #BCA890;
   --input: #BCA890;
   --ring: #2B2414;
   --chart-1: #585D27;
   --chart-2: #775B45;
   --chart-3: #BCA890;
-  --chart-4: #585D27;
+  --chart-4: #4A5423;
   --chart-5: #2B2414;
   --radius: 1rem;
   --sidebar: #F2EDE6;
   --sidebar-foreground: #2B2414;
   --sidebar-primary: #2B2414;
-  --sidebar-primary-foreground: #E9E4DC;
+  --sidebar-primary-foreground: #F2EDE6;
   --sidebar-accent: #F2EDE6;
   --sidebar-accent-foreground: #775B45;
   --sidebar-border: #BCA890;
