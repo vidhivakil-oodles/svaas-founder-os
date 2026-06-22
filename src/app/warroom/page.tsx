@@ -17,7 +17,6 @@ export default function WarRoomPage() {
 
   const criticalDecisions = state.decisions.filter((d: any) => d.status === 'pending' && d.deadline && new Date(d.deadline) < new Date());
 
-  // Overdue waiting-on items
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const overdueWaiting = state.tasks
@@ -27,32 +26,32 @@ export default function WarRoomPage() {
   const totalFires = overdueTasks.length + blockedTasks.length + criticalDecisions.length + overdueWaiting.length;
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
+    <div className="space-y-8 max-w-2xl mx-auto">
       <header className="pt-2">
         <BackToHome />
-        <h1 className="text-2xl font-bold text-red-400 mt-2">War Room</h1>
-        <p className="text-sm text-zinc-500">{totalFires} items need attention. Nothing else shown here.</p>
+        <h1 className="text-2xl font-medium text-[var(--svaas-brown-dark)] mt-3">War Room</h1>
+        <p className="text-sm text-[var(--svaas-brown-light)] mt-1">{totalFires} item{totalFires !== 1 ? 's' : ''} need attention</p>
       </header>
 
       {totalFires === 0 && (
-        <div className="border border-emerald-900/40 bg-emerald-950/10 rounded-xl p-8 text-center">
-          <p className="text-emerald-400 font-medium text-lg">All clear.</p>
-          <p className="text-zinc-500 text-sm mt-1">No overdue, blocked, or critical decisions.</p>
+        <div className="border border-[var(--svaas-olive)]/20 bg-[var(--svaas-olive-light)] rounded-2xl p-8 text-center">
+          <p className="text-[var(--svaas-olive)] font-medium text-lg">All clear.</p>
+          <p className="text-sm text-[var(--svaas-brown-light)] mt-1">No overdue, blocked, or critical decisions.</p>
         </div>
       )}
 
       {/* Overdue Critical */}
       {overdueTasks.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-medium text-red-400 uppercase tracking-wide">Overdue Critical ({overdueTasks.length})</h2>
+          <p className="text-[10px] text-[var(--svaas-clay)] uppercase tracking-widest font-semibold">Overdue Critical ({overdueTasks.length})</p>
           {overdueTasks.map((t: any) => (
-            <div key={t.id} className="border border-red-900/50 bg-red-950/10 rounded-xl p-4">
+            <div key={t.id} className="border border-[var(--svaas-clay)]/20 bg-[var(--svaas-clay-light)] rounded-2xl p-5">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-zinc-100 font-medium">{t.title}</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">{t.department} &bull; {t.owner} &bull; {dayNumber - t.dayRangeEnd}d overdue</p>
+                  <p className="text-sm font-medium text-[var(--svaas-brown-dark)]">{t.title}</p>
+                  <p className="text-xs text-[var(--svaas-brown-light)] mt-1">{t.department} &middot; {t.owner} &middot; {dayNumber - t.dayRangeEnd}d overdue</p>
                 </div>
-                <button onClick={() => markTaskDone(t.id)} className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs rounded-lg font-medium shrink-0">Done</button>
+                <button onClick={() => markTaskDone(t.id)} className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium transition-colors shrink-0">Done</button>
               </div>
             </div>
           ))}
@@ -62,19 +61,16 @@ export default function WarRoomPage() {
       {/* Blocked */}
       {blockedTasks.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-medium text-amber-400 uppercase tracking-wide">Blocked ({blockedTasks.length})</h2>
+          <p className="text-[10px] text-[var(--svaas-amber)] uppercase tracking-widest font-semibold">Blocked ({blockedTasks.length})</p>
           {blockedTasks.map((t: any) => (
-            <div key={t.id} className="border border-amber-900/50 bg-amber-950/10 rounded-xl p-4">
+            <div key={t.id} className="border border-[var(--svaas-amber)]/20 bg-[var(--svaas-amber-light)] rounded-2xl p-5">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-zinc-100 font-medium">{t.title}</p>
-                  <p className="text-xs text-red-400 mt-0.5">Reason: {t.blockedReason}</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">{t.department} &bull; {t.owner}</p>
+                  <p className="text-sm font-medium text-[var(--svaas-brown-dark)]">{t.title}</p>
+                  <p className="text-xs text-[var(--svaas-clay)] mt-1">Reason: {t.blockedReason}</p>
+                  <p className="text-xs text-[var(--svaas-brown-light)] mt-0.5">{t.department} &middot; {t.owner}</p>
                 </div>
-                <div className="flex gap-1.5 shrink-0">
-                  <button onClick={() => unblockTask(t.id)} className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs rounded-lg font-medium">Unblock</button>
-                  <button onClick={() => markTaskDone(t.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg">Done</button>
-                </div>
+                <button onClick={() => unblockTask(t.id)} className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium transition-colors shrink-0">Unblock</button>
               </div>
             </div>
           ))}
@@ -84,37 +80,37 @@ export default function WarRoomPage() {
       {/* Critical Decisions Overdue */}
       {criticalDecisions.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-medium text-amber-400 uppercase tracking-wide">Decisions Overdue ({criticalDecisions.length})</h2>
+          <p className="text-[10px] text-[var(--svaas-amber)] uppercase tracking-widest font-semibold">Decisions Overdue ({criticalDecisions.length})</p>
           {criticalDecisions.map((d: any) => (
-            <div key={d.id} className="border border-amber-900/50 bg-amber-950/10 rounded-xl p-4">
+            <div key={d.id} className="border border-[var(--svaas-sand)] bg-[var(--svaas-cream)] rounded-2xl p-5">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-zinc-100 font-medium">{d.title}</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">Default: {d.defaultOption} &bull; Due: {d.deadline}</p>
+                  <p className="text-sm font-medium text-[var(--svaas-brown-dark)]">{d.title}</p>
+                  <p className="text-xs text-[var(--svaas-brown-light)] mt-1">Default: {d.defaultOption} &middot; Due: {d.deadline}</p>
                 </div>
-                <button onClick={() => acceptDecisionDefault(d.id)} className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs rounded-lg font-medium shrink-0">Accept Default</button>
+                <button onClick={() => acceptDecisionDefault(d.id)} className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium transition-colors shrink-0">Accept Default</button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Waiting On — Overdue */}
+      {/* Waiting On - Overdue */}
       {overdueWaiting.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-medium text-blue-400 uppercase tracking-wide">Waiting On — Overdue ({overdueWaiting.length})</h2>
+          <p className="text-[10px] text-[var(--svaas-slate)] uppercase tracking-widest font-semibold">Waiting On - Overdue ({overdueWaiting.length})</p>
           {overdueWaiting.map((t: any) => {
             const expectedDate = new Date(t.waitingOnDate);
             const daysLate = Math.floor((today.getTime() - expectedDate.getTime()) / (1000 * 60 * 60 * 24));
             return (
-              <div key={t.id} className="border border-blue-900/50 bg-blue-950/10 rounded-xl p-4">
+              <div key={t.id} className="border border-[var(--svaas-slate)]/20 bg-[var(--svaas-slate-light)] rounded-2xl p-5">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-zinc-100 font-medium">{t.title}</p>
-                    <p className="text-xs text-blue-400 mt-0.5">{t.waitingOnPerson} is {daysLate}d late (expected {t.waitingOnDate})</p>
-                    {t.waitingOnNotes && <p className="text-xs text-zinc-500 mt-0.5">{t.waitingOnNotes}</p>}
+                    <p className="text-sm font-medium text-[var(--svaas-brown-dark)]">{t.title}</p>
+                    <p className="text-xs text-[var(--svaas-slate)] mt-1">{t.waitingOnPerson} is {daysLate}d late (expected {t.waitingOnDate})</p>
+                    {t.waitingOnNotes && <p className="text-xs text-[var(--svaas-brown-light)] mt-0.5">{t.waitingOnNotes}</p>}
                   </div>
-                  <button onClick={() => markTaskDone(t.id)} className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs rounded-lg font-medium shrink-0">Received</button>
+                  <button onClick={() => markTaskDone(t.id)} className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium transition-colors shrink-0">Received</button>
                 </div>
               </div>
             );

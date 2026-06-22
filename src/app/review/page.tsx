@@ -88,79 +88,75 @@ export default function WeeklyReviewPage() {
   const data = calculateReviewData(state);
 
   return (
-    <div className="space-y-6">
-      <header>
+    <div className="space-y-8 max-w-2xl mx-auto">
+      <header className="pt-2">
         <BackToHome />
-        <h1 className="text-2xl font-bold text-zinc-100 mt-1">Weekly Review</h1>
-        <p className="text-sm text-zinc-500">
-          Week {data.weekNumber} &bull; {data.dayRange} &bull; ~18 minutes
+        <h1 className="text-2xl font-medium text-[var(--svaas-brown-dark)] mt-3">Weekly Review</h1>
+        <p className="text-sm text-[var(--svaas-brown-light)] mt-1">
+          Week {data.weekNumber} &middot; {data.dayRange} &middot; ~18 minutes
         </p>
       </header>
 
       {/* Step Indicator */}
-      <div className="flex items-center gap-1">
-        {STEPS.map(step => (
-          <button
-            key={step.id}
-            onClick={() => setCurrentStep(step.id)}
-            className={`flex-1 h-1.5 rounded-full transition-colors ${
-              step.id < currentStep ? 'bg-emerald-600' :
-              step.id === currentStep ? 'bg-amber-500' : 'bg-zinc-800'
-            }`}
-          />
-        ))}
-      </div>
-      <div className="flex items-center justify-between text-xs text-zinc-500">
-        <span>Step {currentStep}/{STEPS.length}: {STEPS[currentStep - 1].title}</span>
-        <span>{STEPS[currentStep - 1].time}</span>
+      <div className="space-y-2">
+        <div className="flex items-center gap-1">
+          {STEPS.map(step => (
+            <button
+              key={step.id}
+              onClick={() => setCurrentStep(step.id)}
+              className={`flex-1 h-1.5 rounded-full transition-colors ${
+                step.id < currentStep ? 'bg-[var(--svaas-olive)]' :
+                step.id === currentStep ? 'bg-[var(--svaas-amber)]' : 'bg-[var(--svaas-sand)]'
+              }`}
+            />
+          ))}
+        </div>
+        <div className="flex items-center justify-between text-xs text-[var(--svaas-brown-light)]">
+          <span>Step {currentStep}/{STEPS.length}: {STEPS[currentStep - 1].title}</span>
+          <span>{STEPS[currentStep - 1].time}</span>
+        </div>
       </div>
 
       {/* Step Content */}
-      <div className="border border-zinc-800 rounded-lg p-6 min-h-[320px]">
+      <div className="border border-[var(--svaas-sand)] bg-[var(--svaas-cream)] rounded-2xl p-6 min-h-[320px]">
         {/* STEP 1: What Happened */}
         {currentStep === 1 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-100">What Happened This Week?</h2>
+            <h2 className="text-lg font-medium text-[var(--svaas-brown-dark)]">What Happened This Week?</h2>
             <WeekJournalSummary />
           </div>
         )}
 
-        {/* STEP 2: What's Stuck — WIRED */}
+        {/* STEP 2: What's Stuck */}
         {currentStep === 2 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-100">What&apos;s Stuck?</h2>
-            <p className="text-sm text-zinc-500">These items need attention. Take action now:</p>
+            <h2 className="text-lg font-medium text-[var(--svaas-brown-dark)]">What&apos;s Stuck?</h2>
+            <p className="text-sm text-[var(--svaas-brown-light)]">These items need attention. Take action now:</p>
             {data.stuckItems.length === 0 && (
-              <p className="text-zinc-500 text-sm">Nothing stuck this week.</p>
+              <p className="text-sm text-[var(--svaas-brown-light)]">Nothing stuck this week.</p>
             )}
             <div className="space-y-4">
               {data.stuckItems.map((item: any) => (
-                <div key={item.id} className="border border-red-900/30 bg-red-950/10 rounded-lg p-4">
+                <div key={item.id} className="border border-[var(--svaas-clay)]/20 bg-[var(--svaas-clay-light)] rounded-xl p-4">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="font-medium text-zinc-200">{item.title}</p>
-                      <p className="text-xs text-zinc-500 mt-0.5">{item.stream} &bull; {item.reason}</p>
+                      <p className="font-medium text-[var(--svaas-brown-dark)] text-sm">{item.title}</p>
+                      <p className="text-xs text-[var(--svaas-brown-light)] mt-0.5">{item.stream} &middot; {item.reason}</p>
                     </div>
-                    {item.daysOverdue > 0 && <span className="text-xs text-red-400">{item.daysOverdue}d</span>}
+                    {item.daysOverdue > 0 && <span className="text-xs text-[var(--svaas-clay)]">{item.daysOverdue}d</span>}
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
                       onClick={() => markTaskDone(item.id)}
-                      className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-xs rounded text-zinc-100"
+                      className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium transition-colors"
                     >
                       Done now
                     </button>
                     <button
                       onClick={() => commitTask(item.id)}
-                      className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs rounded text-zinc-300"
+                      className="px-4 py-2.5 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-sm rounded-xl hover:bg-[var(--svaas-cream)] transition-colors"
                     >
                       Will do this week
-                    </button>
-                    <button
-                      onClick={() => waitingOnTask(item.id, 'TBD', '', 'Flagged in review')}
-                      className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs rounded text-zinc-300"
-                    >
-                      Waiting for response
                     </button>
                   </div>
                 </div>
@@ -169,34 +165,32 @@ export default function WeeklyReviewPage() {
           </div>
         )}
 
-        {/* STEP 3: Vendor Check — WIRED */}
+        {/* STEP 3: Vendor Check */}
         {currentStep === 3 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-100">Vendor & External Check</h2>
-            <p className="text-sm text-zinc-500">Who owes you something?</p>
+            <h2 className="text-lg font-medium text-[var(--svaas-brown-dark)]">Vendor & External Check</h2>
+            <p className="text-sm text-[var(--svaas-brown-light)]">Who owes you something?</p>
             {data.vendorWaits.length === 0 && (
-              <p className="text-zinc-500 text-sm">No active vendor waits this week.</p>
+              <p className="text-sm text-[var(--svaas-brown-light)]">No active vendor waits this week.</p>
             )}
             <div className="space-y-3">
               {data.vendorWaits.map((w: any) => (
-                <div key={w.id} className="border border-zinc-800 rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-medium text-zinc-200">{w.personOrVendor}</p>
-                      <p className="text-sm text-zinc-400">{w.description}</p>
-                      {w.lastContacted && <p className="text-xs text-zinc-600 mt-1">Last contacted: {w.lastContacted}</p>}
-                    </div>
+                <div key={w.id} className="border border-[var(--svaas-sand)] rounded-xl p-4">
+                  <div>
+                    <p className="font-medium text-[var(--svaas-brown-dark)] text-sm">{w.personOrVendor}</p>
+                    <p className="text-sm text-[var(--svaas-brown)] mt-0.5">{w.description}</p>
+                    {w.lastContacted && <p className="text-xs text-[var(--svaas-brown-light)] mt-1">Last contacted: {w.lastContacted}</p>}
                   </div>
                   <div className="mt-3 flex gap-2">
                     <button
                       onClick={() => markWaitingOnReceived(w.id)}
-                      className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-xs rounded text-zinc-100"
+                      className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium transition-colors"
                     >
                       Received
                     </button>
                     <button
-                      className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs rounded text-zinc-300"
-                      onClick={() => {/* Still waiting — no state change needed, just acknowledged */}}
+                      className="px-4 py-2.5 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-sm rounded-xl hover:bg-white transition-colors"
+                      onClick={() => {}}
                     >
                       Still waiting
                     </button>
@@ -207,34 +201,34 @@ export default function WeeklyReviewPage() {
           </div>
         )}
 
-        {/* STEP 4: Decisions — WIRED */}
+        {/* STEP 4: Decisions */}
         {currentStep === 4 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-100">Decisions</h2>
-            <p className="text-sm text-zinc-500">{data.pendingDecisions.length} decisions need your attention:</p>
+            <h2 className="text-lg font-medium text-[var(--svaas-brown-dark)]">Decisions</h2>
+            <p className="text-sm text-[var(--svaas-brown-light)]">{data.pendingDecisions.length} decision{data.pendingDecisions.length !== 1 ? 's' : ''} need your attention:</p>
             {data.pendingDecisions.length === 0 && (
-              <p className="text-zinc-500 text-sm">No pending decisions this week.</p>
+              <p className="text-sm text-[var(--svaas-brown-light)]">No pending decisions this week.</p>
             )}
             <div className="space-y-4">
               {data.pendingDecisions.map((d: any) => {
                 const daysOverdue = d.deadline && new Date(d.deadline) < new Date() ? Math.floor((Date.now() - new Date(d.deadline).getTime()) / (1000 * 60 * 60 * 24)) : 0;
                 return (
-                  <div key={d.id} className={`border ${daysOverdue ? 'border-red-900/40 bg-red-950/10' : 'border-zinc-800'} rounded-lg p-4`}>
+                  <div key={d.id} className={`border ${daysOverdue ? 'border-[var(--svaas-clay)]/20 bg-[var(--svaas-clay-light)]' : 'border-[var(--svaas-sand)]'} rounded-xl p-4`}>
                     <div className="flex items-start justify-between mb-2">
-                      <p className="font-medium text-zinc-200">{d.title}</p>
-                      {daysOverdue > 0 && <span className="text-xs text-red-400">{daysOverdue}d overdue</span>}
+                      <p className="font-medium text-[var(--svaas-brown-dark)] text-sm">{d.title}</p>
+                      {daysOverdue > 0 && <span className="text-xs text-[var(--svaas-clay)]">{daysOverdue}d overdue</span>}
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => acceptDecisionDefault(d.id)}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-md font-medium"
+                        className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium transition-colors"
                       >
                         Accept: {d.defaultOption}
                       </button>
                       {d.deferCount < d.maxDeferrals && (
                         <button
                           onClick={() => deferDecision(d.id)}
-                          className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-500 text-sm rounded-md"
+                          className="px-4 py-2.5 border border-[var(--svaas-sand)] text-[var(--svaas-brown-light)] text-sm rounded-xl hover:bg-white transition-colors"
                         >
                           Defer 7d
                         </button>
@@ -247,71 +241,71 @@ export default function WeeklyReviewPage() {
           </div>
         )}
 
-        {/* STEP 5: Next Week Focus — WIRED */}
+        {/* STEP 5: Next Week Focus */}
         {currentStep === 5 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-100">Next Week&apos;s Focus</h2>
-            <p className="text-sm text-zinc-500">Based on critical path, the system suggests:</p>
+            <h2 className="text-lg font-medium text-[var(--svaas-brown-dark)]">Next Week&apos;s Focus</h2>
+            <p className="text-sm text-[var(--svaas-brown-light)]">Based on critical path, the system suggests:</p>
 
-            <div className="border-2 border-amber-800/50 bg-amber-950/20 rounded-lg p-4">
-              <p className="text-xs text-amber-400 font-medium mb-1">#1 ACTION NEXT WEEK</p>
-              <p className="text-zinc-100 font-semibold">{data.suggestedFocus.primary}</p>
-              {data.suggestedFocus.reason && <p className="text-sm text-zinc-400 mt-1">{data.suggestedFocus.reason}</p>}
+            <div className="border border-[var(--svaas-amber)]/20 bg-[var(--svaas-amber-light)] rounded-xl p-4">
+              <p className="text-[10px] text-[var(--svaas-amber)] uppercase tracking-widest font-semibold mb-1">Primary Focus</p>
+              <p className="text-sm font-medium text-[var(--svaas-brown-dark)]">{data.suggestedFocus.primary}</p>
+              {data.suggestedFocus.reason && <p className="text-xs text-[var(--svaas-brown)] mt-1">{data.suggestedFocus.reason}</p>}
             </div>
 
             {data.suggestedFocus.secondary.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs text-zinc-600">Secondary (if time allows):</p>
+                <p className="text-xs text-[var(--svaas-brown-light)]">Secondary (if time allows):</p>
                 {data.suggestedFocus.secondary.map((item: any, i: number) => (
-                  <div key={i} className="flex items-center gap-2 text-sm text-zinc-400">
-                    <span className="text-zinc-600">•</span>
+                  <div key={i} className="flex items-center gap-2 text-sm text-[var(--svaas-brown)]">
+                    <span className="text-[var(--svaas-brown-light)]">&bull;</span>
                     {item}
                   </div>
                 ))}
               </div>
             )}
 
-            <div className="flex gap-2 pt-3">
-              {data.suggestedFocus.primaryId && (
+            {data.suggestedFocus.primaryId && (
+              <div className="pt-2">
                 <button
                   onClick={() => { commitTask(data.suggestedFocus.primaryId); }}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-md font-medium"
+                  className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium transition-colors"
                 >
                   Commit to this
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* STEP 6: Momentum */}
         {currentStep === 6 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-100">Momentum & Attention</h2>
+            <h2 className="text-lg font-medium text-[var(--svaas-brown-dark)]">Momentum & Attention</h2>
 
             <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="border border-zinc-800 rounded-lg p-3">
-                <div className="text-2xl font-bold text-zinc-100">{getDayNumber()}</div>
-                <div className="text-xs text-zinc-600">Day</div>
+              <div className="border border-[var(--svaas-sand)] rounded-xl p-4">
+                <div className="text-2xl font-medium text-[var(--svaas-brown-dark)]">{getDayNumber()}</div>
+                <div className="text-xs text-[var(--svaas-brown-light)]">Day</div>
               </div>
-              <div className="border border-zinc-800 rounded-lg p-3">
-                <div className="text-2xl font-bold text-zinc-100">{data.dreamProtection.thisWeek}/{data.dreamProtection.target}</div>
-                <div className="text-xs text-zinc-600">Days active</div>
+              <div className="border border-[var(--svaas-sand)] rounded-xl p-4">
+                <div className="text-2xl font-medium text-[var(--svaas-brown-dark)]">{data.dreamProtection.thisWeek}/{data.dreamProtection.target}</div>
+                <div className="text-xs text-[var(--svaas-brown-light)]">Days active</div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-sm text-zinc-400">Where attention went this week:</h3>
+              <h3 className="text-xs text-[var(--svaas-brown-light)]">Where attention went this week:</h3>
               {data.attention.map((a: any, i: number) => (
                 <div key={i} className="flex items-center gap-3">
-                  <span className="text-xs text-zinc-500 w-36 truncate">{a.stream}</span>
-                  <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
+                  <span className="text-xs text-[var(--svaas-brown)] w-36 truncate">{a.stream}</span>
+                  <div className="flex-1 h-1.5 bg-[var(--svaas-sand)] rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${a.actions > 0 ? 'bg-emerald-600' : 'bg-zinc-800'}`}
+                      className={`h-full rounded-full ${a.actions > 0 ? 'bg-[var(--svaas-olive)]' : 'bg-[var(--svaas-sand)]'}`}
                       style={{ width: `${Math.min((a.actions / 5) * 100, 100)}%` }}
                     />
                   </div>
-                  <span className="text-xs text-zinc-600 w-4 text-right">{a.actions}</span>
+                  <span className="text-xs text-[var(--svaas-brown-light)] w-4 text-right">{a.actions}</span>
                 </div>
               ))}
             </div>
@@ -321,57 +315,57 @@ export default function WeeklyReviewPage() {
         {/* STEP 7: Venture Journal */}
         {currentStep === 7 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-100">Venture Journal</h2>
-            <p className="text-sm text-zinc-500">Your venture memory. Add notes, see the full timeline.</p>
+            <h2 className="text-lg font-medium text-[var(--svaas-brown-dark)]">Venture Journal</h2>
+            <p className="text-sm text-[var(--svaas-brown-light)]">Your venture memory. Add notes, see the full timeline.</p>
             <VentureJournal thisWeekOnly={true} maxEntries={30} showNoteInput={true} compact={false} />
           </div>
         )}
 
-        {/* STEP 8: Close Week — WIRED */}
+        {/* STEP 8: Close Week */}
         {currentStep === 8 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-100">Close Week</h2>
+            <h2 className="text-lg font-medium text-[var(--svaas-brown-dark)]">Close Week</h2>
 
             <div className="space-y-4">
-              <div className="border-2 border-amber-800/40 bg-amber-950/10 rounded-lg p-4 space-y-3">
-                <p className="text-sm font-medium text-amber-400">What is your single commitment for next week?</p>
-                <p className="text-xs text-zinc-500">One thing. The most important thing. Not three things. One.</p>
+              <div className="border border-[var(--svaas-amber)]/20 bg-[var(--svaas-amber-light)] rounded-xl p-4 space-y-3">
+                <p className="text-sm font-medium text-[var(--svaas-amber)]">What is your single commitment for next week?</p>
+                <p className="text-xs text-[var(--svaas-brown-light)]">One thing. The most important thing. Not three things. One.</p>
                 <input
                   value={nextWeekCommitment}
                   onChange={e => setNextWeekCommitment(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && nextWeekCommitment.trim()) { setWeeklyCommitment(nextWeekCommitment.trim()); } }}
                   placeholder="e.g., Get LLP registration filed"
-                  className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-700/50"
+                  className="w-full px-3 py-2.5 bg-white border border-[var(--svaas-sand)] rounded-xl text-sm text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none focus:border-[var(--svaas-brown-light)]"
                 />
                 {nextWeekCommitment.trim() && !state.weeklyCommitment?.text && (
                   <button
                     onClick={() => setWeeklyCommitment(nextWeekCommitment.trim())}
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded-lg font-medium"
+                    className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium transition-colors"
                   >
                     Lock It In
                   </button>
                 )}
                 {state.weeklyCommitment && state.weeklyCommitment.weekNumber === data.weekNumber && (
-                  <p className="text-xs text-emerald-400 mt-2">✓ Set: &ldquo;{state.weeklyCommitment.text}&rdquo;</p>
+                  <p className="text-xs text-[var(--svaas-olive)] mt-2">&#10003; Set: &ldquo;{state.weeklyCommitment.text}&rdquo;</p>
                 )}
               </div>
 
-              <div className="border-t border-zinc-800 pt-4">
+              <div className="border-t border-[var(--svaas-sand)] pt-4">
                 {weekClosed ? (
                   <div className="text-center py-4">
-                    <p className="text-emerald-400 font-medium">✓ Week {data.weekNumber} closed.</p>
-                    <p className="text-xs text-zinc-500 mt-1">Review saved to venture memory.</p>
+                    <p className="text-[var(--svaas-olive)] font-medium">&#10003; Week {data.weekNumber} closed.</p>
+                    <p className="text-xs text-[var(--svaas-brown-light)] mt-1">Review saved to venture memory.</p>
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm text-zinc-400">
+                    <p className="text-sm text-[var(--svaas-brown)]">
                       Week {data.weekNumber} reviewed. {data.completedThisWeek.length} actions completed.
                     </p>
                     <button
                       onClick={() => { closeWeek(); setWeekClosed(true); }}
-                      className="w-full mt-3 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md font-medium transition-colors"
+                      className="w-full mt-3 px-4 py-3 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] rounded-xl font-medium transition-colors"
                     >
-                      ✓ Close Week {data.weekNumber}
+                      Close Week {data.weekNumber}
                     </button>
                   </>
                 )}
@@ -386,19 +380,19 @@ export default function WeeklyReviewPage() {
         <button
           onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
           disabled={currentStep === 1}
-          className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed text-zinc-300 text-sm rounded-md transition-colors"
+          className="px-4 py-2.5 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-sm rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--svaas-cream)] transition-colors"
         >
-          ← Previous
+          &larr; Previous
         </button>
-        <span className="text-xs text-zinc-600">
+        <span className="text-xs text-[var(--svaas-brown-light)]">
           {STEPS.map(s => s.time.replace(' min', '')).reduce((sum, t) => sum + parseInt(t), 0)} min total
         </span>
         <button
           onClick={() => setCurrentStep(Math.min(STEPS.length, currentStep + 1))}
           disabled={currentStep === STEPS.length}
-          className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed text-zinc-300 text-sm rounded-md transition-colors"
+          className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
-          Next →
+          Next &rarr;
         </button>
       </div>
 

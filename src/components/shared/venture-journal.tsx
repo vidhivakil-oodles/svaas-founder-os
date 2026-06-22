@@ -5,38 +5,42 @@ import { useAppState } from '@/lib/state-provider';
 import type { JournalEntry } from '@/lib/persistence';
 
 const ENTRY_ICONS: Record<string, string> = {
-  task_completed: '✓',
-  task_started: '▸',
-  task_committed: '◉',
-  task_blocked: '⊘',
-  task_waiting_on: '⏳',
-  task_deferred: '◌',
-  task_cancelled: '✗',
-  decision_made: '◇',
-  decision_deferred: '↻',
-  waiting_on_received: '✓',
-  milestone_gate_met: '★',
-  daily_reset: '↺',
-  deferred_resurfaced: '↑',
-  manual_note: '✎',
+  task_completed: '\u2713',
+  task_started: '\u25B8',
+  task_committed: '\u25C9',
+  task_blocked: '\u2298',
+  task_waiting_on: '\u23F3',
+  task_deferred: '\u25CC',
+  task_cancelled: '\u2717',
+  decision_made: '\u25C7',
+  decision_deferred: '\u21BB',
+  waiting_on_received: '\u2713',
+  milestone_gate_met: '\u2605',
+  daily_reset: '\u21BA',
+  deferred_resurfaced: '\u2191',
+  manual_note: '\u270E',
 };
 
-const ENTRY_COLORS: Record<string, string> = {
-  task_completed: 'text-emerald-400 border-emerald-900/40',
-  task_started: 'text-amber-400 border-amber-900/40',
-  task_committed: 'text-emerald-300 border-emerald-900/30',
-  task_blocked: 'text-red-400 border-red-900/40',
-  task_waiting_on: 'text-blue-400 border-blue-900/40',
-  task_deferred: 'text-zinc-500 border-zinc-700',
-  task_cancelled: 'text-zinc-500 border-zinc-700',
-  decision_made: 'text-emerald-400 border-emerald-900/40',
-  decision_deferred: 'text-amber-400 border-amber-900/40',
-  waiting_on_received: 'text-emerald-400 border-emerald-900/40',
-  milestone_gate_met: 'text-amber-300 border-amber-900/40',
-  daily_reset: 'text-zinc-500 border-zinc-800',
-  deferred_resurfaced: 'text-blue-400 border-blue-900/40',
-  manual_note: 'text-zinc-300 border-zinc-700',
-};
+function getEntryColor(type: string): { text: string; border: string } {
+  switch (type) {
+    case 'task_completed':
+    case 'decision_made':
+    case 'waiting_on_received':
+      return { text: 'text-[var(--svaas-olive)]', border: 'border-[var(--svaas-olive)]/30' };
+    case 'task_started':
+    case 'task_committed':
+    case 'milestone_gate_met':
+    case 'decision_deferred':
+      return { text: 'text-[var(--svaas-amber)]', border: 'border-[var(--svaas-amber)]/30' };
+    case 'task_blocked':
+      return { text: 'text-[var(--svaas-clay)]', border: 'border-[var(--svaas-clay)]/30' };
+    case 'task_waiting_on':
+    case 'deferred_resurfaced':
+      return { text: 'text-[var(--svaas-slate)]', border: 'border-[var(--svaas-slate)]/30' };
+    default:
+      return { text: 'text-[var(--svaas-brown-light)]', border: 'border-[var(--svaas-sand)]' };
+  }
+}
 
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
@@ -65,13 +69,9 @@ function groupByDate(entries: JournalEntry[]): Record<string, JournalEntry[]> {
 }
 
 interface VentureJournalProps {
-  /** Filter to only show entries from this week */
   thisWeekOnly?: boolean;
-  /** Max entries to show */
   maxEntries?: number;
-  /** Show the manual note input */
   showNoteInput?: boolean;
-  /** Compact mode for embedding */
   compact?: boolean;
 }
 
@@ -80,12 +80,10 @@ export function VentureJournal({ thisWeekOnly = false, maxEntries = 50, showNote
   const [note, setNote] = useState('');
   const [filter, setFilter] = useState<'all' | 'actions' | 'notes' | 'decisions'>('all');
 
-  // Get journal entries
   let entries: JournalEntry[] = [...(state.journal || [])].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-  // Filter to this week if needed
   if (thisWeekOnly) {
     const weekStart = new Date();
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
@@ -93,7 +91,6 @@ export function VentureJournal({ thisWeekOnly = false, maxEntries = 50, showNote
     entries = entries.filter(e => new Date(e.createdAt) >= weekStart);
   }
 
-  // Apply type filter
   if (filter === 'actions') {
     entries = entries.filter(e => ['task_completed', 'task_started', 'task_committed'].includes(e.type));
   } else if (filter === 'notes') {
@@ -102,9 +99,7 @@ export function VentureJournal({ thisWeekOnly = false, maxEntries = 50, showNote
     entries = entries.filter(e => ['decision_made', 'decision_deferred'].includes(e.type));
   }
 
-  // Limit
   entries = entries.slice(0, maxEntries);
-
   const grouped = groupByDate(entries);
 
   function handleAddNote() {
@@ -113,7 +108,6 @@ export function VentureJournal({ thisWeekOnly = false, maxEntries = 50, showNote
     setNote('');
   }
 
-  // Summary stats for this week
   const weekStart = new Date();
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   weekStart.setHours(0, 0, 0, 0);
@@ -129,33 +123,30 @@ export function VentureJournal({ thisWeekOnly = false, maxEntries = 50, showNote
     <div className="space-y-4">
       {/* Manual Note Input */}
       {showNoteInput && (
-        <div className="border border-zinc-800 rounded-lg p-3">
-          <div className="flex gap-2">
-            <input
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleAddNote()}
-              placeholder="Add a note to the venture journal..."
-              className="flex-1 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
-            />
-            <button
-              onClick={handleAddNote}
-              disabled={!note.trim()}
-              className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed text-zinc-300 text-sm rounded-lg transition-colors"
-            >
-              Save
-            </button>
-          </div>
+        <div className="flex gap-2">
+          <input
+            value={note}
+            onChange={e => setNote(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAddNote()}
+            placeholder="Add a note to the venture journal..."
+            className="flex-1 px-3 py-2.5 bg-white border border-[var(--svaas-sand)] rounded-xl text-sm text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none focus:border-[var(--svaas-brown-light)]"
+          />
+          <button
+            onClick={handleAddNote}
+            disabled={!note.trim()}
+            className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] disabled:opacity-30 disabled:cursor-not-allowed text-[var(--svaas-ivory)] text-sm rounded-xl font-medium transition-colors"
+          >
+            Save
+          </button>
         </div>
       )}
 
       {/* Week Summary */}
       {!compact && (
-        <div className="flex items-center gap-4 text-xs text-zinc-500">
-          <span>This week: <span className="text-emerald-400 font-medium">{weekStats.completed} done</span></span>
-          <span><span className="text-zinc-300 font-medium">{weekStats.decisions}</span> decisions</span>
-          <span><span className="text-zinc-300 font-medium">{weekStats.notes}</span> notes</span>
-          <span className="text-zinc-600">{weekStats.total} total entries</span>
+        <div className="flex items-center gap-4 text-xs text-[var(--svaas-brown-light)]">
+          <span>This week: <span className="text-[var(--svaas-olive)] font-medium">{weekStats.completed} done</span></span>
+          <span><span className="text-[var(--svaas-brown)] font-medium">{weekStats.decisions}</span> decisions</span>
+          <span><span className="text-[var(--svaas-brown)] font-medium">{weekStats.notes}</span> notes</span>
         </div>
       )}
 
@@ -166,8 +157,8 @@ export function VentureJournal({ thisWeekOnly = false, maxEntries = 50, showNote
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1 text-xs rounded-lg transition-colors ${
-                filter === f ? 'bg-zinc-800 text-zinc-200' : 'text-zinc-500 hover:text-zinc-300'
+              className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                filter === f ? 'bg-[var(--svaas-sand)] text-[var(--svaas-brown-dark)]' : 'text-[var(--svaas-brown-light)] hover:text-[var(--svaas-brown)]'
               }`}
             >
               {f === 'all' ? 'All' : f === 'actions' ? 'Actions' : f === 'decisions' ? 'Decisions' : 'Notes'}
@@ -179,36 +170,35 @@ export function VentureJournal({ thisWeekOnly = false, maxEntries = 50, showNote
       {/* Timeline */}
       {entries.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-zinc-500 text-sm">No journal entries yet.</p>
-          <p className="text-zinc-600 text-xs mt-1">Complete a task, make a decision, or add a note to start your venture memory.</p>
+          <p className="text-sm text-[var(--svaas-brown-light)]">No journal entries yet.</p>
+          <p className="text-xs text-[var(--svaas-brown-light)] mt-1">Complete a task, make a decision, or add a note to start your venture memory.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {Object.entries(grouped).map(([date, dateEntries]) => (
             <div key={date}>
               <div className="flex items-center gap-2 mb-2">
-                <div className="h-px flex-1 bg-zinc-800" />
-                <span className="text-xs text-zinc-600 font-medium">{date}</span>
-                <div className="h-px flex-1 bg-zinc-800" />
+                <div className="h-px flex-1 bg-[var(--svaas-sand)]" />
+                <span className="text-xs text-[var(--svaas-brown-light)] font-medium">{date}</span>
+                <div className="h-px flex-1 bg-[var(--svaas-sand)]" />
               </div>
               <div className="space-y-1.5">
                 {dateEntries.map(entry => {
-                  const icon = ENTRY_ICONS[entry.type] || '•';
-                  const colorClass = ENTRY_COLORS[entry.type] || 'text-zinc-400 border-zinc-800';
-                  const [textColor, borderColor] = colorClass.split(' ');
+                  const icon = ENTRY_ICONS[entry.type] || '\u2022';
+                  const colors = getEntryColor(entry.type);
 
                   return (
                     <div
                       key={entry.id}
-                      className={`flex items-start gap-3 py-2 pl-3 border-l-2 ${borderColor}`}
+                      className={`flex items-start gap-3 py-2 pl-3 border-l-2 ${colors.border}`}
                     >
-                      <span className={`text-sm mt-0.5 ${textColor}`}>{icon}</span>
+                      <span className={`text-sm mt-0.5 ${colors.text}`}>{icon}</span>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm ${entry.type === 'manual_note' ? 'text-zinc-200 italic' : 'text-zinc-300'}`}>
+                        <p className={`text-sm ${entry.type === 'manual_note' ? 'text-[var(--svaas-brown)] italic' : 'text-[var(--svaas-brown-dark)]'}`}>
                           {entry.title}
                         </p>
                       </div>
-                      <span className="text-xs text-zinc-600 shrink-0">{formatRelativeTime(entry.createdAt)}</span>
+                      <span className="text-xs text-[var(--svaas-brown-light)] shrink-0">{formatRelativeTime(entry.createdAt)}</span>
                     </div>
                   );
                 })}
@@ -222,7 +212,7 @@ export function VentureJournal({ thisWeekOnly = false, maxEntries = 50, showNote
 }
 
 /**
- * Compact week summary for the Review page's "What happened this week?" step
+ * Compact week summary for the Review page
  */
 export function WeekJournalSummary() {
   const { state } = useAppState();
@@ -243,8 +233,8 @@ export function WeekJournalSummary() {
   if (weekEntries.length === 0) {
     return (
       <div className="text-center py-6">
-        <p className="text-zinc-500 text-sm">No activity recorded this week.</p>
-        <p className="text-zinc-600 text-xs mt-1">Start completing tasks to build your venture memory.</p>
+        <p className="text-sm text-[var(--svaas-brown-light)]">No activity recorded this week.</p>
+        <p className="text-xs text-[var(--svaas-brown-light)] mt-1">Start completing tasks to build your venture memory.</p>
       </div>
     );
   }
@@ -252,51 +242,50 @@ export function WeekJournalSummary() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 text-center">
-        <div className="border border-zinc-800 rounded-lg p-3">
-          <div className="text-xl font-bold text-emerald-400">{completed.length}</div>
-          <div className="text-xs text-zinc-600">Completed</div>
+        <div className="border border-[var(--svaas-sand)] rounded-xl p-3">
+          <div className="text-xl font-medium text-[var(--svaas-olive)]">{completed.length}</div>
+          <div className="text-xs text-[var(--svaas-brown-light)]">Completed</div>
         </div>
-        <div className="border border-zinc-800 rounded-lg p-3">
-          <div className="text-xl font-bold text-zinc-200">{decisions.length}</div>
-          <div className="text-xs text-zinc-600">Decisions Made</div>
+        <div className="border border-[var(--svaas-sand)] rounded-xl p-3">
+          <div className="text-xl font-medium text-[var(--svaas-brown-dark)]">{decisions.length}</div>
+          <div className="text-xs text-[var(--svaas-brown-light)]">Decisions Made</div>
         </div>
       </div>
 
-      {/* Narrative */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         {completed.length > 0 && (
           <div>
-            <p className="text-xs text-emerald-400 font-medium mb-1">Completed</p>
+            <p className="text-[10px] text-[var(--svaas-olive)] uppercase tracking-widest font-semibold mb-1">Completed</p>
             {completed.slice(0, 5).map(e => (
-              <p key={e.id} className="text-sm text-zinc-300 py-0.5">✓ {e.title}</p>
+              <p key={e.id} className="text-sm text-[var(--svaas-brown)] py-0.5">&#10003; {e.title}</p>
             ))}
-            {completed.length > 5 && <p className="text-xs text-zinc-600">+{completed.length - 5} more</p>}
+            {completed.length > 5 && <p className="text-xs text-[var(--svaas-brown-light)]">+{completed.length - 5} more</p>}
           </div>
         )}
 
         {decisions.length > 0 && (
           <div>
-            <p className="text-xs text-zinc-400 font-medium mb-1">Decisions</p>
+            <p className="text-[10px] text-[var(--svaas-brown-light)] uppercase tracking-widest font-semibold mb-1">Decisions</p>
             {decisions.map(e => (
-              <p key={e.id} className="text-sm text-zinc-300 py-0.5">◇ {e.title}</p>
+              <p key={e.id} className="text-sm text-[var(--svaas-brown)] py-0.5">&#9671; {e.title}</p>
             ))}
           </div>
         )}
 
         {blocked.length > 0 && (
           <div>
-            <p className="text-xs text-red-400 font-medium mb-1">Got Blocked</p>
+            <p className="text-[10px] text-[var(--svaas-clay)] uppercase tracking-widest font-semibold mb-1">Got Blocked</p>
             {blocked.slice(0, 3).map(e => (
-              <p key={e.id} className="text-sm text-zinc-400 py-0.5">⊘ {e.title}</p>
+              <p key={e.id} className="text-sm text-[var(--svaas-brown)] py-0.5">&#8856; {e.title}</p>
             ))}
           </div>
         )}
 
         {notes.length > 0 && (
           <div>
-            <p className="text-xs text-zinc-400 font-medium mb-1">Notes</p>
+            <p className="text-[10px] text-[var(--svaas-brown-light)] uppercase tracking-widest font-semibold mb-1">Notes</p>
             {notes.map(e => (
-              <p key={e.id} className="text-sm text-zinc-300 italic py-0.5">&ldquo;{e.title}&rdquo;</p>
+              <p key={e.id} className="text-sm text-[var(--svaas-brown)] italic py-0.5">&ldquo;{e.title}&rdquo;</p>
             ))}
           </div>
         )}
