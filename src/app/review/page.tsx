@@ -93,7 +93,7 @@ export default function WeeklyReviewPage() {
         <BackToHome />
         <h1 className="text-2xl font-medium text-[var(--svaas-brown-dark)] mt-3">Weekly Review</h1>
         <p className="text-sm text-[var(--svaas-brown-light)] mt-1">
-          Week {data.weekNumber} &middot; {data.dayRange} &middot; ~18 minutes
+          Week {data.weekNumber} · {data.dayRange} · ~18 minutes
         </p>
       </header>
 
@@ -127,7 +127,7 @@ export default function WeeklyReviewPage() {
           </div>
         )}
 
-        {/* STEP 2: What's Stuck */}
+        {/* STEP 2: What's Stuck - simplified to Commit only */}
         {currentStep === 2 && (
           <div className="space-y-4">
             <h2 className="text-lg font-medium text-[var(--svaas-brown-dark)]">What&apos;s Stuck?</h2>
@@ -141,22 +141,16 @@ export default function WeeklyReviewPage() {
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-medium text-[var(--svaas-brown-dark)] text-sm">{item.title}</p>
-                      <p className="text-xs text-[var(--svaas-brown-light)] mt-0.5">{item.stream} &middot; {item.reason}</p>
+                      <p className="text-xs text-[var(--svaas-brown-light)] mt-0.5">{item.stream} · {item.reason}</p>
                     </div>
                     {item.daysOverdue > 0 && <span className="text-xs text-[var(--svaas-clay)]">{item.daysOverdue}d</span>}
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                      onClick={() => markTaskDone(item.id)}
-                      className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium transition-colors"
-                    >
-                      Done now
-                    </button>
+                  <div className="mt-3">
                     <button
                       onClick={() => commitTask(item.id)}
-                      className="px-4 py-2.5 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-sm rounded-xl hover:bg-[var(--svaas-cream)] transition-colors"
+                      className="px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium"
                     >
-                      Will do this week
+                      Commit
                     </button>
                   </div>
                 </div>
@@ -165,7 +159,7 @@ export default function WeeklyReviewPage() {
           </div>
         )}
 
-        {/* STEP 3: Vendor Check */}
+        {/* STEP 3: Vendor Check - Received only */}
         {currentStep === 3 && (
           <div className="space-y-4">
             <h2 className="text-lg font-medium text-[var(--svaas-brown-dark)]">Vendor & External Check</h2>
@@ -181,18 +175,12 @@ export default function WeeklyReviewPage() {
                     <p className="text-sm text-[var(--svaas-brown)] mt-0.5">{w.description}</p>
                     {w.lastContacted && <p className="text-xs text-[var(--svaas-brown-light)] mt-1">Last contacted: {w.lastContacted}</p>}
                   </div>
-                  <div className="mt-3 flex gap-2">
+                  <div className="mt-3">
                     <button
                       onClick={() => markWaitingOnReceived(w.id)}
-                      className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium transition-colors"
+                      className="px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium"
                     >
                       Received
-                    </button>
-                    <button
-                      className="px-4 py-2.5 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-sm rounded-xl hover:bg-white transition-colors"
-                      onClick={() => {}}
-                    >
-                      Still waiting
                     </button>
                   </div>
                 </div>
@@ -201,7 +189,7 @@ export default function WeeklyReviewPage() {
           </div>
         )}
 
-        {/* STEP 4: Decisions */}
+        {/* STEP 4: Decisions - Accept only */}
         {currentStep === 4 && (
           <div className="space-y-4">
             <h2 className="text-lg font-medium text-[var(--svaas-brown-dark)]">Decisions</h2>
@@ -218,21 +206,13 @@ export default function WeeklyReviewPage() {
                       <p className="font-medium text-[var(--svaas-brown-dark)] text-sm">{d.title}</p>
                       {daysOverdue > 0 && <span className="text-xs text-[var(--svaas-clay)]">{daysOverdue}d overdue</span>}
                     </div>
-                    <div className="flex gap-2">
+                    <div>
                       <button
                         onClick={() => acceptDecisionDefault(d.id)}
-                        className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium transition-colors"
+                        className="px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium"
                       >
                         Accept: {d.defaultOption}
                       </button>
-                      {d.deferCount < d.maxDeferrals && (
-                        <button
-                          onClick={() => deferDecision(d.id)}
-                          className="px-4 py-2.5 border border-[var(--svaas-sand)] text-[var(--svaas-brown-light)] text-sm rounded-xl hover:bg-white transition-colors"
-                        >
-                          Defer 7d
-                        </button>
-                      )}
                     </div>
                   </div>
                 );
@@ -248,7 +228,7 @@ export default function WeeklyReviewPage() {
             <p className="text-sm text-[var(--svaas-brown-light)]">Based on critical path, the system suggests:</p>
 
             <div className="border border-[var(--svaas-amber)]/20 bg-[var(--svaas-amber-light)] rounded-xl p-4">
-              <p className="text-[10px] text-[var(--svaas-amber)] uppercase tracking-widest font-semibold mb-1">Primary Focus</p>
+              <p className="text-xs text-[var(--svaas-amber)] mb-1">Primary focus</p>
               <p className="text-sm font-medium text-[var(--svaas-brown-dark)]">{data.suggestedFocus.primary}</p>
               {data.suggestedFocus.reason && <p className="text-xs text-[var(--svaas-brown)] mt-1">{data.suggestedFocus.reason}</p>}
             </div>
@@ -269,7 +249,7 @@ export default function WeeklyReviewPage() {
               <div className="pt-2">
                 <button
                   onClick={() => { commitTask(data.suggestedFocus.primaryId); }}
-                  className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium transition-colors"
+                  className="px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium"
                 >
                   Commit to this
                 </button>
@@ -340,9 +320,9 @@ export default function WeeklyReviewPage() {
                 {nextWeekCommitment.trim() && !state.weeklyCommitment?.text && (
                   <button
                     onClick={() => setWeeklyCommitment(nextWeekCommitment.trim())}
-                    className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium transition-colors"
+                    className="px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium"
                   >
-                    Lock It In
+                    Lock it in
                   </button>
                 )}
                 {state.weeklyCommitment && state.weeklyCommitment.weekNumber === data.weekNumber && (
@@ -363,7 +343,7 @@ export default function WeeklyReviewPage() {
                     </p>
                     <button
                       onClick={() => { closeWeek(); setWeekClosed(true); }}
-                      className="w-full mt-3 px-4 py-3 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] rounded-xl font-medium transition-colors"
+                      className="w-full mt-3 px-4 py-3 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] rounded-xl font-medium"
                     >
                       Close Week {data.weekNumber}
                     </button>
@@ -380,9 +360,9 @@ export default function WeeklyReviewPage() {
         <button
           onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
           disabled={currentStep === 1}
-          className="px-4 py-2.5 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-sm rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--svaas-cream)] transition-colors"
+          className="px-4 py-2 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-sm rounded-xl disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          &larr; Previous
+          Previous
         </button>
         <span className="text-xs text-[var(--svaas-brown-light)]">
           {STEPS.map(s => s.time.replace(' min', '')).reduce((sum, t) => sum + parseInt(t), 0)} min total
@@ -390,9 +370,9 @@ export default function WeeklyReviewPage() {
         <button
           onClick={() => setCurrentStep(Math.min(STEPS.length, currentStep + 1))}
           disabled={currentStep === STEPS.length}
-          className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          Next &rarr;
+          Next
         </button>
       </div>
 

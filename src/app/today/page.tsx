@@ -52,7 +52,6 @@ export default function TodayPage() {
   // Sections
   const committed = state.tasks.filter((t: any) => t.status === 'committed_today');
   const waitingOn = state.tasks.filter((t: any) => t.status === 'waiting_on');
-  const blocked = state.tasks.filter((t: any) => t.status === 'blocked');
 
   const overdueWaiting = waitingOn
     .filter((t: any) => t.waitingOnDate && getDaysOverdueWaiting(t) > 0)
@@ -74,9 +73,9 @@ export default function TodayPage() {
     const streamName = stream?.name || task.department;
     const remaining = state.tasks.filter((t: any) => t.streamId === task.streamId && t.status !== 'done' && t.id !== task.id).length;
     let impact = `${streamName} advances.`;
-    if (task.priority === 'CRITICAL') impact = `Critical path — ${streamName} moves.`;
+    if (task.priority === 'CRITICAL') impact = `Critical path - ${streamName} moves.`;
     if (remaining <= 3 && remaining > 0) impact = `${streamName}: only ${remaining} left!`;
-    setWins(prev => [...prev, `${task.title} — ${impact}`]);
+    setWins(prev => [...prev, `${task.title} - ${impact}`]);
     setUndoAvailable(true);
     setTimeout(() => setUndoAvailable(false), 3000);
   }
@@ -138,7 +137,7 @@ export default function TodayPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="pt-2">
-        <p className="text-[var(--svaas-brown-light)] text-xs tracking-wide">Day {dayNumber} · Week {weekNumber} · {daysToLaunch}d to launch</p>
+        <p className="text-xs text-[var(--svaas-brown-light)]">Day {dayNumber} · Week {weekNumber} · {daysToLaunch}d to launch</p>
         <h1 className="text-2xl font-semibold text-[var(--svaas-brown-dark)] mt-1">Good morning, Vidhi.</h1>
       </div>
 
@@ -160,7 +159,7 @@ export default function TodayPage() {
       {wins.length > 0 && (
         <div className="border border-[var(--svaas-olive)]/20 bg-[var(--svaas-olive-light)] rounded-2xl p-4">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] text-[var(--svaas-olive)] uppercase tracking-widest font-semibold">Done</p>
+            <p className="text-xs text-[var(--svaas-olive)]">Done</p>
             {undoAvailable && (
               <button onClick={handleUndo} className="text-xs text-[var(--svaas-brown-light)] hover:text-[var(--svaas-brown)]">Undo</button>
             )}
@@ -172,7 +171,7 @@ export default function TodayPage() {
       {/* OVERDUE FOLLOW-UPS */}
       {overdueWaiting.length > 0 && (
         <section className="space-y-2">
-          <p className="text-[10px] text-[var(--svaas-amber)] uppercase tracking-widest font-semibold">Follow Up ({overdueWaiting.length})</p>
+          <p className="text-xs text-[var(--svaas-amber)]">Follow up ({overdueWaiting.length})</p>
           {overdueWaiting.map((t: any) => {
             const daysOver = getDaysOverdueWaiting(t);
             return (
@@ -190,10 +189,10 @@ export default function TodayPage() {
         </section>
       )}
 
-      {/* TODAY'S COMMITMENT — Hero */}
+      {/* TODAY'S COMMITMENT */}
       {committed.length > 0 && (
         <section>
-          <p className="text-[10px] text-[var(--svaas-brown-light)] uppercase tracking-widest font-semibold mb-2">Your Commitment</p>
+          <p className="text-xs text-[var(--svaas-brown-light)] mb-2">Your commitment</p>
           {committed.slice(0, 1).map((t: any) => (
             <div key={t.id} className="border-2 border-[var(--svaas-brown)]/15 bg-[var(--svaas-cream)] rounded-2xl p-5 space-y-3">
               <div className="flex items-start justify-between">
@@ -201,10 +200,9 @@ export default function TodayPage() {
                 <KebabMenu actions={getKebabActions(t)} />
               </div>
               <p className="text-xs text-[var(--svaas-brown-light)]">{t.department} · {t.owner}</p>
-              <p className="text-sm text-[var(--svaas-clay)]">If ignored → {getConsequence(t)}</p>
+              <p className="text-sm text-[var(--svaas-clay)]">If ignored: {getConsequence(t)}</p>
               <div className="flex gap-2 pt-1">
-                <button onClick={() => handleDone(t)} className="px-4 py-2.5 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium">✓ Done</button>
-                <button onClick={() => setShowWaitingForm(t.id)} className="px-4 py-2.5 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-sm rounded-xl">Waiting On</button>
+                <button onClick={() => handleDone(t)} className="px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium">Done</button>
               </div>
 
               {/* Inline forms */}
@@ -245,7 +243,7 @@ export default function TodayPage() {
 
       {/* DO NEXT */}
       <section className="space-y-2">
-        <p className="text-[10px] text-[var(--svaas-brown-light)] uppercase tracking-widest font-semibold">Do Next</p>
+        <p className="text-xs text-[var(--svaas-brown-light)]">Do next</p>
         {actionable.map((task: any) => (
           <div key={task.id} className="border border-[var(--svaas-sand)] bg-[var(--svaas-cream)] rounded-2xl p-4 space-y-2">
             <div className="flex items-start justify-between gap-2">
@@ -256,7 +254,7 @@ export default function TodayPage() {
               </div>
               <KebabMenu actions={getKebabActions(task)} />
             </div>
-            <p className="text-xs text-[var(--svaas-clay)]">If ignored → {getConsequence(task)}</p>
+            <p className="text-xs text-[var(--svaas-clay)]">If ignored: {getConsequence(task)}</p>
             <div className="flex gap-2">
               <button onClick={() => commitTask(task.id)} className="px-3 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-xs rounded-xl font-medium">Commit</button>
               <button onClick={() => handleDone(task)} className="px-3 py-2 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-xs rounded-xl">Done</button>

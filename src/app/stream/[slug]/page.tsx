@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { AppNav, BackToHome } from '@/components/shared/nav';
+import { KebabMenu } from '@/components/shared/kebab-menu';
 
 const STATUS_ICONS: Record<string, string> = { done: '\u2713', in_progress: '\u25D0', committed_today: '\u25C9', waiting_on: '\u23F3', blocked: '\u2298', not_started: '\u25CB', deferred: '\u25CC' };
 const PRIORITY_WEIGHT: Record<string, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
@@ -39,9 +40,7 @@ function getStatusColor(status: string): string {
 export default function StreamPage() {
   const params = useParams();
   const slug = params.slug as string;
-  const { state, markTaskDone, blockTask, startTask, commitTask, deferTask, waitingOnTask } = useAppState();
-  const [blockingId, setBlockingId] = useState<string | null>(null);
-  const [blockReason, setBlockReason] = useState('');
+  const { state, markTaskDone, blockTask, startTask, commitTask, deferTask, waitingOnTask, cancelTask, unblockTask } = useAppState();
   const [showAll, setShowAll] = useState(false);
 
   const stream = state.streams.find(s => s.slug === slug);
@@ -65,14 +64,51 @@ export default function StreamPage() {
   const nextMilestone = state.milestones.find(m => streamPhases.includes(m.phase) && m.status !== 'achieved');
   const milestoneGatesRemaining = nextMilestone ? nextMilestone.gateCriteria.filter(g => !g.met).length : 0;
 
-  function handleBlock(taskId: string) {
-    if (!blockReason.trim()) return;
-    blockTask(taskId, blockReason);
-    setBlockingId(null);
-    setBlockReason('');
+  function getTaskKebab(task: any) {
+    const actions = [];
+    if (task.status === 'not_started') {
+      actions.push({ label: 'Start', onClick: () => startTask(task.id) });
+      actions.push({ label: 'Waiting On...', onClick: () => waitingOnTask(task.id, 'TBD', '', '') });
+      actions.push({ label: 'Block...', onClick: () => blockTask(task.id, 'Blocked from stream') });
+      actions.push({ label: 'Defer', onClick: () => deferTask(task.id, 'Deferred', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]) });
+    }
+    if (task.status === 'committed_today' || task.status === 'in_progress') {
+      actions.push({ label: 'Waiting On...', onClick: () => waitingOnTask(task.id, 'TBD', '', '') });
+      actions.push({ label: 'Block...', onClick: () => blockTask(task.id, 'Blocked from stream') });
+      actions.push({ label: 'Defer', onClick: () => deferTask(task.id, 'Deferred', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]) });
+    }
+    if (task.status === 'blocked') {
+      actions.push({ label: 'Done', onClick: () => markTaskDone(task.id) });
+      actions.push({ label: 'Defer', onClick: () => deferTask(task.id, 'Deferred while blocked', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]) });
+    }
+    if (task.status === 'waiting_on') {
+      actions.push({ label: 'Done', onClick: () => markTaskDone(task.id) });
+      actions.push({ label: 'Defer', onClick: () => deferTask(task.id, 'Deferred while waiting', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]) });
+    }
+    actions.push({ label: 'Cancel', onClick: () => cancelTask(task.id), destructive: true });
+    return actions;
+  }
+
+  function getPrimaryAction(task: any) {
+    if (task.status === 'committed_today' || task.status === 'in_progress') {
+      return { label: 'Done', onClick: () => markTaskDone(task.id) };
+    }
+    if (task.status === 'not_started') {
+      return { label: 'Commit', onClick: () => commitTask(task.id) };
+    }
+    if (task.status === 'blocked') {
+      return { label: 'Unblock', onClick: () => unblockTask(task.id) };
+    }
+    if (task.status === 'waiting_on') {
+      return { label: 'Received', onClick: () => markTaskDone(task.id) };
+    }
+    return null;
   }
 
   function renderTask(task: any) {
+    const primary = getPrimaryAction(task);
+    const kebabActions = getTaskKebab(task);
+
     return (
       <div key={task.id} className="border border-[var(--svaas-sand)] bg-[var(--svaas-cream)] rounded-2xl p-5 space-y-3">
         <div className="flex items-start gap-3">
@@ -92,17 +128,10 @@ export default function StreamPage() {
             </div>
           </div>
         </div>
-        {(task.status === 'not_started' || task.status === 'in_progress' || task.status === 'committed_today') && (
-          <div className="flex gap-2 pl-6">
-            <button onClick={() => markTaskDone(task.id)} className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium transition-colors">Done</button>
-            {blockingId === task.id ? (
-              <div className="flex gap-2 items-center">
-                <input value={blockReason} onChange={e => setBlockReason(e.target.value)} placeholder="What is blocking this?" className="px-3 py-2 bg-white border border-[var(--svaas-sand)] rounded-xl text-sm text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] w-40 focus:outline-none focus:border-[var(--svaas-brown-light)]" onKeyDown={e => e.key === 'Enter' && handleBlock(task.id)} autoFocus />
-                <button onClick={() => handleBlock(task.id)} className="px-3 py-2 bg-[var(--svaas-clay)] text-white text-sm rounded-xl">OK</button>
-              </div>
-            ) : (
-              <button onClick={() => setBlockingId(task.id)} className="px-4 py-2.5 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-sm rounded-xl hover:bg-[var(--svaas-cream)] transition-colors">Block</button>
-            )}
+        {primary && task.status !== 'done' && (
+          <div className="flex items-center gap-1 pl-6">
+            <button onClick={primary.onClick} className="px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium">{primary.label}</button>
+            {kebabActions.length > 0 && <KebabMenu actions={kebabActions} />}
           </div>
         )}
       </div>
@@ -130,7 +159,7 @@ export default function StreamPage() {
       {/* Bottleneck */}
       {stream.currentBottleneck && (
         <div className="border border-[var(--svaas-clay)]/20 bg-[var(--svaas-clay-light)] rounded-2xl p-5">
-          <p className="text-[10px] text-[var(--svaas-clay)] uppercase tracking-widest font-semibold mb-2">Current Bottleneck</p>
+          <p className="text-xs text-[var(--svaas-clay)] mb-2">Current bottleneck</p>
           <p className="text-sm text-[var(--svaas-brown-dark)]">{stream.currentBottleneck}</p>
           {stream.waitingOn && <p className="text-xs text-[var(--svaas-brown-light)] mt-1">Waiting on: {stream.waitingOn}</p>}
         </div>
@@ -139,16 +168,16 @@ export default function StreamPage() {
       {/* Next Milestone */}
       {nextMilestone && (
         <div className="border border-[var(--svaas-sand)] bg-[var(--svaas-cream)] rounded-2xl p-5">
-          <p className="text-[10px] text-[var(--svaas-brown-light)] uppercase tracking-widest font-semibold mb-2">Next Milestone</p>
+          <p className="text-xs text-[var(--svaas-brown-light)] mb-2">Next milestone</p>
           <p className="text-sm font-medium text-[var(--svaas-brown-dark)]">{nextMilestone.title}</p>
-          <p className="text-xs text-[var(--svaas-brown-light)] mt-1">{milestoneGatesRemaining} requirement{milestoneGatesRemaining !== 1 ? 's' : ''} remaining &middot; Target Day {nextMilestone.dayTarget}</p>
+          <p className="text-xs text-[var(--svaas-brown-light)] mt-1">{milestoneGatesRemaining} requirement{milestoneGatesRemaining !== 1 ? 's' : ''} remaining · Target Day {nextMilestone.dayTarget}</p>
         </div>
       )}
 
       {/* Top 5 Actionable Tasks */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] text-[var(--svaas-brown-light)] uppercase tracking-widest font-semibold">Top Actions</p>
+          <p className="text-xs text-[var(--svaas-brown-light)]">Top actions</p>
           <span className="text-xs text-[var(--svaas-brown-light)]">{actionable.length} actionable</span>
         </div>
         {top5.length === 0 ? (

@@ -4,6 +4,7 @@ import { useAppState } from '@/lib/state-provider';
 import { getDayNumber } from '@/lib/venture-config';
 import Link from 'next/link';
 import { AppNav, BackToHome } from '@/components/shared/nav';
+import { KebabMenu } from '@/components/shared/kebab-menu';
 
 export default function DecisionsPage() {
   const { state, acceptDecisionDefault, makeDecision, deferDecision } = useAppState();
@@ -31,18 +32,33 @@ export default function DecisionsPage() {
     return `${daysUntil} days until deadline. After that, dependent work stalls.`;
   }
 
+  function getDecisionKebab(d: any) {
+    const actions = [];
+    const alternatives = d.options?.filter((o: any) => o.label !== d.defaultOption) || [];
+    alternatives.forEach((opt: any) => {
+      actions.push({ label: opt.label, onClick: () => makeDecision(d.id, opt.label) });
+    });
+    if (d.deferCount < d.maxDeferrals) {
+      actions.push({ label: 'Defer 7d', onClick: () => deferDecision(d.id) });
+    }
+    return actions;
+  }
+
   return (
     <div className="space-y-8 max-w-2xl mx-auto">
       <header className="pt-2">
         <BackToHome />
         <h1 className="text-2xl font-medium text-[var(--svaas-brown-dark)] mt-3">Decisions</h1>
-        <p className="text-sm text-[var(--svaas-brown-light)] mt-1">{pending.length} pending &middot; {decided.length} decided</p>
+        <p className="text-sm text-[var(--svaas-brown-light)] mt-1">{pending.length} pending · {decided.length} decided</p>
       </header>
 
-      {/* Decision of the Day */}
+      {/* Decision of the Day - featured */}
       {topDecision && (
         <div className="border border-[var(--svaas-amber)]/20 bg-[var(--svaas-amber-light)] rounded-2xl p-6 space-y-4">
-          <p className="text-[10px] text-[var(--svaas-amber)] uppercase tracking-widest font-semibold">Decision of the Day</p>
+          <div className="flex items-start justify-between">
+            <p className="text-xs text-[var(--svaas-amber)]">Decision of the day</p>
+            <KebabMenu actions={getDecisionKebab(topDecision)} />
+          </div>
           <h2 className="text-lg font-medium text-[var(--svaas-brown-dark)]">{topDecision.title}</h2>
           {topDecision.context && <p className="text-sm text-[var(--svaas-brown)]">{topDecision.context}</p>}
           
@@ -52,41 +68,31 @@ export default function DecisionsPage() {
             <div className="text-xs"><span className="text-[var(--svaas-brown-light)]">Default if undecided:</span> <span className="text-[var(--svaas-brown)]">{topDecision.defaultOption}</span></div>
           </div>
 
-          <div className="flex flex-wrap gap-2 pt-2">
-            <button onClick={() => acceptDecisionDefault(topDecision.id)} className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium transition-colors">
+          <div className="pt-2">
+            <button onClick={() => acceptDecisionDefault(topDecision.id)} className="px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium">
               Accept: {topDecision.defaultOption}
             </button>
-            {topDecision.options.filter((o: any) => o.label !== topDecision.defaultOption).map((opt: any) => (
-              <button key={opt.label} onClick={() => makeDecision(topDecision.id, opt.label)} className="px-4 py-2.5 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-sm rounded-xl hover:bg-[var(--svaas-cream)] transition-colors">
-                {opt.label}
-              </button>
-            ))}
           </div>
         </div>
       )}
 
-      {/* Remaining Pending */}
+      {/* Remaining Pending - only Accept button visible */}
       {pending.length > 1 && (
         <div className="space-y-4">
-          <p className="text-[10px] text-[var(--svaas-brown-light)] uppercase tracking-widest font-semibold">Also Pending</p>
+          <p className="text-xs text-[var(--svaas-brown-light)]">Also pending</p>
           {pending.slice(1).map((d: any) => {
             const isOverdue = d.deadline && new Date(d.deadline) < new Date();
             return (
               <div key={d.id} className={`border ${isOverdue ? 'border-[var(--svaas-clay)]/20 bg-[var(--svaas-clay-light)]' : 'border-[var(--svaas-sand)] bg-[var(--svaas-cream)]'} rounded-2xl p-5 space-y-3`}>
                 <div className="flex items-start justify-between">
                   <h3 className="font-medium text-[var(--svaas-brown-dark)]">{d.title}</h3>
-                  {isOverdue && <span className="text-[10px] text-[var(--svaas-clay)] font-semibold uppercase tracking-wide">Overdue</span>}
+                  {isOverdue && <span className="text-[10px] text-[var(--svaas-clay)] font-medium">Overdue</span>}
                 </div>
-                <p className="text-xs text-[var(--svaas-brown-light)]">Default: {d.defaultOption} &middot; Due: {d.deadline || 'None'}</p>
-                <div className="flex gap-2">
-                  <button onClick={() => acceptDecisionDefault(d.id)} className="px-4 py-2.5 bg-[var(--svaas-brown)] hover:bg-[var(--svaas-brown-dark)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium transition-colors">
+                <p className="text-xs text-[var(--svaas-brown-light)]">Default: {d.defaultOption} · Due: {d.deadline || 'None'}</p>
+                <div>
+                  <button onClick={() => acceptDecisionDefault(d.id)} className="px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium">
                     Accept: {d.defaultOption}
                   </button>
-                  {d.deferCount < d.maxDeferrals && (
-                    <button onClick={() => deferDecision(d.id)} className="px-4 py-2.5 border border-[var(--svaas-sand)] text-[var(--svaas-brown-light)] text-sm rounded-xl hover:bg-[var(--svaas-cream)] transition-colors">
-                      Defer 7d
-                    </button>
-                  )}
                 </div>
               </div>
             );
@@ -97,7 +103,7 @@ export default function DecisionsPage() {
       {/* Recently Decided */}
       {decided.length > 0 && (
         <div className="space-y-3">
-          <p className="text-[10px] text-[var(--svaas-brown-light)] uppercase tracking-widest font-semibold">Decided</p>
+          <p className="text-xs text-[var(--svaas-brown-light)]">Decided</p>
           <div className="border border-[var(--svaas-sand)] bg-[var(--svaas-cream)] rounded-2xl p-5 space-y-2">
             {decided.map((d: any) => (
               <div key={d.id} className="flex items-center gap-2 text-sm py-1">

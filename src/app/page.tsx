@@ -101,7 +101,7 @@ export default function HomePage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="pt-2">
-        <p className="text-[var(--svaas-brown-light)] text-xs tracking-wide">Day {dayNumber} · Week {weekNumber} · {daysToLaunch}d to launch</p>
+        <p className="text-xs text-[var(--svaas-brown-light)]">Day {dayNumber} · Week {weekNumber} · {daysToLaunch}d to launch</p>
       </div>
 
       {/* Empty state */}
@@ -109,37 +109,37 @@ export default function HomePage() {
         <div className="border border-[var(--svaas-sand)] bg-[var(--svaas-cream)] rounded-2xl p-8 text-center">
           <p className="text-[var(--svaas-brown)] font-medium">All clear.</p>
           <p className="text-[var(--svaas-brown-light)] text-sm mt-1">Your venture is on track. Open Today to move forward.</p>
-          <Link href="/today" className="inline-block mt-4 px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl">Open Today →</Link>
+          <Link href="/today" className="inline-block mt-4 px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl">Open Today</Link>
         </div>
       )}
 
       {/* SECTION 1: TODAY'S COMMITMENT */}
       {commitment ? (
         <section className="border-2 border-[var(--svaas-brown)]/20 bg-[var(--svaas-cream)] rounded-2xl p-5 space-y-3">
-          <p className="text-[10px] text-[var(--svaas-brown-light)] uppercase tracking-widest font-semibold">Today&apos;s Commitment</p>
+          <p className="text-xs text-[var(--svaas-brown-light)]">Today&apos;s commitment</p>
           <p className="text-xl font-semibold text-[var(--svaas-brown-dark)] leading-tight">{commitment.title}</p>
           <div className="space-y-1 text-sm text-[var(--svaas-brown)]">
             <p>{getWhy(commitment, state)}</p>
-            <p className="text-[var(--svaas-olive)]">If done → {getIfDone(commitment, state)}</p>
-            <p className="text-[var(--svaas-clay)]">If ignored → {getConsequence(commitment)}</p>
+            <p className="text-[var(--svaas-olive)]">If done: {getIfDone(commitment, state)}</p>
+            <p className="text-[var(--svaas-clay)]">If ignored: {getConsequence(commitment)}</p>
           </div>
           <div className="flex gap-2 pt-1">
-            <button onClick={() => markTaskDone(commitment.id)} className="px-4 py-2.5 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium">✓ Done</button>
-            <Link href="/today" className="px-4 py-2.5 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-sm rounded-xl">Manage →</Link>
+            <button onClick={() => markTaskDone(commitment.id)} className="px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium">Done</button>
+            <Link href="/today" className="px-4 py-2 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-sm rounded-xl">Manage</Link>
           </div>
         </section>
       ) : suggestedTask ? (
         <section className="border border-[var(--svaas-sand)] bg-[var(--svaas-cream)] rounded-2xl p-5 space-y-3">
-          <p className="text-[10px] text-[var(--svaas-brown-light)] uppercase tracking-widest font-semibold">Today&apos;s Commitment</p>
+          <p className="text-xs text-[var(--svaas-brown-light)]">Today&apos;s commitment</p>
           <p className="text-lg font-medium text-[var(--svaas-brown-dark)] leading-tight">{suggestedTask.title}</p>
           <div className="space-y-1 text-sm text-[var(--svaas-brown)]">
             <p>{getWhy(suggestedTask, state)}</p>
-            <p className="text-[var(--svaas-olive)]">If done → {getIfDone(suggestedTask, state)}</p>
-            <p className="text-[var(--svaas-clay)]">If ignored → {getConsequence(suggestedTask)}</p>
+            <p className="text-[var(--svaas-olive)]">If done: {getIfDone(suggestedTask, state)}</p>
+            <p className="text-[var(--svaas-clay)]">If ignored: {getConsequence(suggestedTask)}</p>
           </div>
           <div className="flex gap-2 pt-1">
-            <button onClick={() => commitTask(suggestedTask.id)} className="px-4 py-2.5 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium">Commit Today</button>
-            <Link href="/today" className="px-4 py-2.5 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-sm rounded-xl">Choose different →</Link>
+            <button onClick={() => commitTask(suggestedTask.id)} className="px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium">Commit today</button>
+            <Link href="/today" className="px-4 py-2 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-sm rounded-xl">Choose different</Link>
           </div>
         </section>
       ) : null}
@@ -147,7 +147,7 @@ export default function HomePage() {
       {/* SECTION 2: BIGGEST BLOCKER */}
       {biggestBlocker && (
         <section className="border border-[var(--svaas-clay)]/20 bg-[var(--svaas-clay-light)] rounded-2xl p-5 space-y-3">
-          <p className="text-[10px] text-[var(--svaas-clay)] uppercase tracking-widest font-semibold">Stuck</p>
+          <p className="text-xs text-[var(--svaas-clay)]">Stuck</p>
           <p className="text-lg font-medium text-[var(--svaas-brown-dark)] leading-tight">{biggestBlocker.title}</p>
           <div className="space-y-1 text-sm">
             <p className="text-[var(--svaas-brown)]">
@@ -155,14 +155,11 @@ export default function HomePage() {
                 ? biggestBlocker.blockedReason
                 : `${dayNumber - (biggestBlocker.dayRangeEnd || 0)}d overdue`}
             </p>
-            <p className="text-[var(--svaas-clay)]">If not resolved → {getConsequence(biggestBlocker)}</p>
+            <p className="text-[var(--svaas-clay)]">If not resolved: {getConsequence(biggestBlocker)}</p>
           </div>
-          <div className="flex gap-2 pt-1">
-            {biggestBlocker.blockerType === 'overdue' && (
-              <button onClick={() => markTaskDone(biggestBlocker.id)} className="px-4 py-2.5 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium">✓ Resolved</button>
-            )}
-            <Link href="/warroom" className="px-4 py-2.5 border border-[var(--svaas-clay)]/30 text-[var(--svaas-clay)] text-sm rounded-xl">
-              War Room ({blockers.length}) →
+          <div className="pt-1">
+            <Link href="/warroom" className="px-4 py-2 border border-[var(--svaas-clay)]/30 text-[var(--svaas-clay)] text-sm rounded-xl inline-block">
+              War Room ({blockers.length})
             </Link>
           </div>
         </section>
@@ -171,19 +168,18 @@ export default function HomePage() {
       {/* SECTION 3: DECISION REQUIRED */}
       {topDecision && (
         <section className="border border-[var(--svaas-amber)]/20 bg-[var(--svaas-amber-light)] rounded-2xl p-5 space-y-3">
-          <p className="text-[10px] text-[var(--svaas-amber)] uppercase tracking-widest font-semibold">Decide</p>
+          <p className="text-xs text-[var(--svaas-amber)]">Decision needed</p>
           <p className="text-lg font-medium text-[var(--svaas-brown-dark)] leading-tight">{topDecision.title}</p>
           <div className="space-y-1 text-sm">
             <p className="text-[var(--svaas-brown)]">{topDecision.context || 'Unlocks dependent work.'}</p>
             <p className="text-[var(--svaas-amber)]">
-              If not decided → {topDecision.streamsAffected > 0
+              If not decided: {topDecision.streamsAffected > 0
                 ? `${topDecision.streamsAffected} stream${topDecision.streamsAffected > 1 ? 's' : ''} stall.`
                 : 'Dependent work stays frozen.'}
             </p>
           </div>
-          <div className="flex gap-2 pt-1">
-            <button onClick={() => acceptDecisionDefault(topDecision.id)} className="px-4 py-2.5 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium">Accept: {topDecision.defaultOption}</button>
-            <Link href="/decisions" className="px-4 py-2.5 border border-[var(--svaas-amber)]/30 text-[var(--svaas-amber)] text-sm rounded-xl">Options →</Link>
+          <div className="pt-1">
+            <button onClick={() => acceptDecisionDefault(topDecision.id)} className="px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium">Accept: {topDecision.defaultOption}</button>
           </div>
         </section>
       )}
@@ -191,7 +187,7 @@ export default function HomePage() {
       {/* SECTION 4: WAITING */}
       {overdueWaiting.length > 0 && (
         <section className="space-y-3">
-          <p className="text-[10px] text-[var(--svaas-slate)] uppercase tracking-widest font-semibold">Waiting — Overdue</p>
+          <p className="text-xs text-[var(--svaas-slate)]">Waiting - overdue</p>
           {overdueWaiting.map((t: any) => (
             <div key={t.id} className="border border-[var(--svaas-slate)]/15 bg-[var(--svaas-slate-light)] rounded-2xl p-4">
               <div className="flex items-start justify-between gap-3">
@@ -209,8 +205,8 @@ export default function HomePage() {
       {/* SECTION 5: THIS WEEK */}
       <section className="border border-[var(--svaas-sand)] bg-[var(--svaas-cream)] rounded-2xl p-4">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] text-[var(--svaas-brown-light)] uppercase tracking-widest font-semibold">This Week</p>
-          <Link href="/review" className="text-xs text-[var(--svaas-brown-light)] hover:text-[var(--svaas-brown)]">Review →</Link>
+          <p className="text-xs text-[var(--svaas-brown-light)]">This week</p>
+          <Link href="/review" className="text-xs text-[var(--svaas-brown-light)] hover:text-[var(--svaas-brown)]">Review</Link>
         </div>
         <p className="text-sm text-[var(--svaas-brown)]">
           {completedThisWeek > 0 && <><span className="font-medium text-[var(--svaas-olive)]">{completedThisWeek}</span> done</>}
