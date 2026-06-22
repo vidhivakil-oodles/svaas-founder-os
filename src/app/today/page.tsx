@@ -5,6 +5,7 @@ import { getDayNumber, getWeekNumber, VENTURE_CONFIG } from '@/lib/venture-confi
 import Link from 'next/link';
 import { useState } from 'react';
 import { AppNav } from '@/components/shared/nav';
+import { KebabMenu } from '@/components/shared/kebab-menu';
 
 function getConsequence(task: any) {
   if (task.department === 'LEGAL') return 'LLP, trademark, bank account all wait.';
@@ -24,12 +25,11 @@ function getDaysOverdueWaiting(task: any): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   expected.setHours(0, 0, 0, 0);
-  const diff = Math.floor((today.getTime() - expected.getTime()) / (1000 * 60 * 60 * 24));
-  return Math.max(0, diff);
+  return Math.max(0, Math.floor((today.getTime() - expected.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
 export default function TodayPage() {
-  const { state, markTaskDone, startTask, commitTask, waitingOnTask, blockTask, deferTask, cancelTask, undoLastDone } = useAppState();
+  const { state, markTaskDone, startTask, commitTask, waitingOnTask, blockTask, deferTask, cancelTask, undoLastDone, addManualNote, addFounderTask } = useAppState();
   const [wins, setWins] = useState<string[]>([]);
   const [showWaitingForm, setShowWaitingForm] = useState<string | null>(null);
   const [showDeferForm, setShowDeferForm] = useState<string | null>(null);
@@ -41,6 +41,9 @@ export default function TodayPage() {
   const [deferReason, setDeferReason] = useState('');
   const [deferDate, setDeferDate] = useState('');
   const [undoAvailable, setUndoAvailable] = useState(false);
+  const [quickNote, setQuickNote] = useState('');
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [showAddTask, setShowAddTask] = useState(false);
 
   const dayNumber = getDayNumber();
   const weekNumber = getWeekNumber();
@@ -50,13 +53,10 @@ export default function TodayPage() {
   const committed = state.tasks.filter((t: any) => t.status === 'committed_today');
   const waitingOn = state.tasks.filter((t: any) => t.status === 'waiting_on');
   const blocked = state.tasks.filter((t: any) => t.status === 'blocked');
-  const overdue = state.tasks.filter((t: any) => t.status === 'not_started' && t.priority === 'CRITICAL' && t.dayRangeEnd && dayNumber > t.dayRangeEnd);
 
-  // Split waiting-on into overdue follow-ups vs. on-time
   const overdueWaiting = waitingOn
     .filter((t: any) => t.waitingOnDate && getDaysOverdueWaiting(t) > 0)
     .sort((a: any, b: any) => getDaysOverdueWaiting(b) - getDaysOverdueWaiting(a));
-  const onTimeWaiting = waitingOn.filter((t: any) => !t.waitingOnDate || getDaysOverdueWaiting(t) === 0);
 
   const actionable = state.tasks
     .filter((t: any) => t.status === 'not_started' && !t.blockedReason)
@@ -70,15 +70,13 @@ export default function TodayPage() {
 
   function handleDone(task: any) {
     markTaskDone(task.id);
-    // Show impact in wins log
     const stream = state.streams.find((s: any) => s.id === task.streamId);
     const streamName = stream?.name || task.department;
     const remaining = state.tasks.filter((t: any) => t.streamId === task.streamId && t.status !== 'done' && t.id !== task.id).length;
     let impact = `${streamName} advances.`;
-    if (task.priority === 'CRITICAL') impact = `Critical path unblocked — ${streamName} moves forward.`;
-    if (remaining <= 3 && remaining > 0) impact = `${streamName}: only ${remaining} tasks remain!`;
-    setWins(prev => [...prev, `✓ ${task.title} — ${impact}`]);
-    // Enable undo for 3 seconds
+    if (task.priority === 'CRITICAL') impact = `Critical path — ${streamName} moves.`;
+    if (remaining <= 3 && remaining > 0) impact = `${streamName}: only ${remaining} left!`;
+    setWins(prev => [...prev, `${task.title} — ${impact}`]);
     setUndoAvailable(true);
     setTimeout(() => setUndoAvailable(false), 3000);
   }
@@ -97,7 +95,7 @@ export default function TodayPage() {
   }
 
   function handleWaitingOn(taskId: string) {
-    if (!waitPerson) return;
+    if (!waitPerson.trim()) return;
     waitingOnTask(taskId, waitPerson, waitDate, waitNotes);
     setShowWaitingForm(null);
     setWaitPerson(''); setWaitDate(''); setWaitNotes('');
@@ -105,252 +103,226 @@ export default function TodayPage() {
 
   function handleDefer(taskId: string) {
     if (!deferReason) return;
-    // Default defer date to +7 days if not set
     const resolvedDate = deferDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     deferTask(taskId, deferReason, resolvedDate);
     setShowDeferForm(null);
     setDeferReason(''); setDeferDate('');
   }
 
+  function handleQuickNote() {
+    if (!quickNote.trim()) return;
+    addManualNote(quickNote.trim());
+    setQuickNote('');
+  }
+
+  function handleAddTask() {
+    if (!newTaskTitle.trim()) return;
+    addFounderTask(newTaskTitle.trim());
+    setNewTaskTitle('');
+    setShowAddTask(false);
+  }
+
+  function getKebabActions(task: any) {
+    const actions = [];
+    if (task.status === 'not_started') {
+      actions.push({ label: 'Start', onClick: () => startTask(task.id) });
+    }
+    actions.push({ label: 'Waiting On...', onClick: () => setShowWaitingForm(task.id) });
+    actions.push({ label: 'Defer...', onClick: () => setShowDeferForm(task.id) });
+    actions.push({ label: 'Blocked...', onClick: () => setShowBlockForm(task.id) });
+    actions.push({ label: 'Cancel', onClick: () => cancelTask(task.id), destructive: true });
+    return actions;
+  }
+
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
+    <div className="space-y-6">
+      {/* Header */}
       <div className="pt-2">
-        <p className="text-zinc-500 text-sm">Day {dayNumber} &bull; Week {weekNumber} &bull; {daysToLaunch}d to launch</p>
-        <h1 className="text-3xl font-bold text-zinc-100 mt-1">Good morning, Vidhi.</h1>
+        <p className="text-[var(--svaas-brown-light)] text-xs tracking-wide">Day {dayNumber} · Week {weekNumber} · {daysToLaunch}d to launch</p>
+        <h1 className="text-2xl font-semibold text-[var(--svaas-brown-dark)] mt-1">Good morning, Vidhi.</h1>
+      </div>
+
+      {/* Quick Note */}
+      <div className="flex gap-2">
+        <input
+          value={quickNote}
+          onChange={e => setQuickNote(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleQuickNote()}
+          placeholder="Add a note..."
+          className="flex-1 px-4 py-2.5 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)] rounded-xl text-sm text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none focus:border-[var(--svaas-brown)]/40"
+        />
+        {quickNote.trim() && (
+          <button onClick={handleQuickNote} className="px-3 py-2.5 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl">+</button>
+        )}
       </div>
 
       {/* Wins */}
       {wins.length > 0 && (
-        <div className="border border-emerald-900/40 bg-emerald-950/10 rounded-xl p-4">
+        <div className="border border-[var(--svaas-olive)]/20 bg-[var(--svaas-olive-light)] rounded-2xl p-4">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-emerald-400 uppercase tracking-wide font-medium">Wins Today</p>
+            <p className="text-[10px] text-[var(--svaas-olive)] uppercase tracking-widest font-semibold">Done</p>
             {undoAvailable && (
-              <button onClick={handleUndo} className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-xs text-zinc-300 rounded">Undo</button>
+              <button onClick={handleUndo} className="text-xs text-[var(--svaas-brown-light)] hover:text-[var(--svaas-brown)]">Undo</button>
             )}
           </div>
-          {wins.map((w, i) => <p key={i} className="text-sm text-emerald-300">{w}</p>)}
+          {wins.map((w, i) => <p key={i} className="text-sm text-[var(--svaas-brown)]">{w}</p>)}
         </div>
       )}
 
-      {/* OVERDUE FOLLOW-UPS — Chief of Staff alert */}
+      {/* OVERDUE FOLLOW-UPS */}
       {overdueWaiting.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="text-sm font-medium text-amber-400 uppercase tracking-wide flex items-center gap-2">
-            <span>⚠</span> Follow Up Required ({overdueWaiting.length})
-          </h2>
+        <section className="space-y-2">
+          <p className="text-[10px] text-[var(--svaas-amber)] uppercase tracking-widest font-semibold">Follow Up ({overdueWaiting.length})</p>
           {overdueWaiting.map((t: any) => {
             const daysOver = getDaysOverdueWaiting(t);
             return (
-              <div key={t.id} className="border border-amber-900/50 bg-amber-950/15 rounded-xl p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-zinc-100 font-medium">{t.title}</p>
-                    <p className="text-xs text-amber-400 mt-0.5 font-medium">
-                      {t.waitingOnPerson} is {daysOver} day{daysOver > 1 ? 's' : ''} late
-                    </p>
-                    <p className="text-xs text-zinc-500 mt-0.5">
-                      Expected: {t.waitingOnDate}{t.waitingOnNotes ? ` • ${t.waitingOnNotes}` : ''}
-                    </p>
+              <div key={t.id} className="border border-[var(--svaas-amber)]/20 bg-[var(--svaas-amber-light)] rounded-2xl p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[var(--svaas-brown-dark)]">{t.title}</p>
+                    <p className="text-xs text-[var(--svaas-amber)] mt-0.5">{t.waitingOnPerson} · {daysOver}d late</p>
                   </div>
-                  <div className="flex gap-1.5 shrink-0">
-                    <button onClick={() => handleDone(t)} className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs rounded-lg">Received</button>
-                    <button onClick={() => blockTask(t.id, `No response from ${t.waitingOnPerson}`)} className="px-3 py-1.5 bg-red-900/50 hover:bg-red-800/50 text-red-300 text-xs rounded-lg">Escalate</button>
-                  </div>
+                  <button onClick={() => handleDone(t)} className="px-3 py-1.5 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-xs rounded-xl shrink-0">Received</button>
                 </div>
-                <p className="text-xs text-amber-400/60 mt-2">
-                  Action: Follow up with {t.waitingOnPerson} today. {daysOver > 3 ? 'Consider alternative path.' : ''}
-                </p>
               </div>
             );
           })}
-        </div>
+        </section>
       )}
 
-      {/* TODAY'S SINGLE COMMITMENT — Hero Card */}
+      {/* TODAY'S COMMITMENT — Hero */}
       {committed.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="text-sm font-medium text-emerald-400 uppercase tracking-wide">Today&apos;s Commitment</h2>
+        <section>
+          <p className="text-[10px] text-[var(--svaas-brown-light)] uppercase tracking-widest font-semibold mb-2">Your Commitment</p>
           {committed.slice(0, 1).map((t: any) => (
-            <div key={t.id} className="border-2 border-emerald-600/60 bg-emerald-950/20 rounded-xl p-5 space-y-3">
-              <div>
-                <p className="text-xl text-zinc-50 font-semibold">{t.title}</p>
-                <p className="text-xs text-zinc-500 mt-1">{t.department} &bull; {t.owner}</p>
-                <p className="text-xs text-red-400/70 mt-2">If ignored → {getConsequence(t)}</p>
-              </div>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <button onClick={() => handleDone(t)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-lg font-medium">✓ Done</button>
-                <button onClick={() => startTask(t.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg">Start</button>
-                <button onClick={() => setShowWaitingForm(t.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-blue-400 text-xs rounded-lg">Waiting On</button>
-                <button onClick={() => setShowDeferForm(t.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-500 text-xs rounded-lg">Defer</button>
-                <button onClick={() => setShowBlockForm(t.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-red-400 text-xs rounded-lg">Blocked</button>
-                <button onClick={() => cancelTask(t.id)} className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-600 text-xs rounded-lg">Cancel</button>
-              </div>
-              {/* Block form */}
-              {showBlockForm === t.id && (
-                <div className="border border-red-900/40 rounded-lg p-3 space-y-2">
-                  <input value={blockReason} onChange={e => setBlockReason(e.target.value)} placeholder="What is blocking this?" className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" onKeyDown={e => e.key === 'Enter' && handleBlock(t.id)} autoFocus />
-                  <div className="flex gap-2">
-                    <button onClick={() => handleBlock(t.id)} disabled={!blockReason.trim()} className="px-3 py-1.5 bg-red-700 hover:bg-red-600 disabled:opacity-30 text-white text-xs rounded-lg">Block</button>
-                    <button onClick={() => { setShowBlockForm(null); setBlockReason(''); }} className="px-3 py-1.5 text-zinc-500 text-xs">Cancel</button>
-                  </div>
-                </div>
-              )}
-              {/* Waiting On form */}
-              {showWaitingForm === t.id && (
-                <div className="border border-blue-900/40 rounded-lg p-3 space-y-2">
-                  <input value={waitPerson} onChange={e => setWaitPerson(e.target.value)} placeholder="Who? (person/vendor)" className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
-                  <div className="space-y-1">
-                    <label className="text-xs text-zinc-500">Expected follow-up date</label>
-                    <input type="date" value={waitDate} onChange={e => setWaitDate(e.target.value)} className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
-                  </div>
-                  <input value={waitNotes} onChange={e => setWaitNotes(e.target.value)} placeholder="Notes (optional)" className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
-                  <div className="flex gap-2">
-                    <button onClick={() => handleWaitingOn(t.id)} disabled={!waitPerson.trim()} className="px-3 py-1.5 bg-blue-700 hover:bg-blue-600 disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs rounded-lg">Save</button>
-                    <button onClick={() => setShowWaitingForm(null)} className="px-3 py-1.5 text-zinc-500 text-xs">Cancel</button>
-                  </div>
-                </div>
-              )}
-              {/* Defer form */}
-              {showDeferForm === t.id && (
-                <div className="border border-zinc-700 rounded-lg p-3 space-y-2">
-                  <input value={deferReason} onChange={e => setDeferReason(e.target.value)} placeholder="Why defer?" className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
-                  <div className="space-y-1">
-                    <label className="text-xs text-zinc-500">Review date (when to resurface)</label>
-                    <input type="date" value={deferDate} onChange={e => setDeferDate(e.target.value)} className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => handleDefer(t.id)} className="px-3 py-1.5 bg-zinc-700 text-white text-xs rounded-lg">Defer</button>
-                    <button onClick={() => setShowDeferForm(null)} className="px-3 py-1.5 text-zinc-500 text-xs">Cancel</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Waiting On Others (on-time) */}
-      {onTimeWaiting.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="text-sm font-medium text-blue-400 uppercase tracking-wide">Waiting On Others ({onTimeWaiting.length})</h2>
-          {onTimeWaiting.map((t: any) => (
-            <div key={t.id} className="border border-blue-900/40 bg-blue-950/10 rounded-xl p-4">
+            <div key={t.id} className="border-2 border-[var(--svaas-brown)]/15 bg-[var(--svaas-cream)] rounded-2xl p-5 space-y-3">
               <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-zinc-100 font-medium">{t.title}</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">
-                    Waiting on: {t.waitingOnPerson || 'Unknown'}
-                    {t.waitingOnDate ? ` • Expected: ${t.waitingOnDate}` : ' • No date set'}
-                  </p>
-                  {t.waitingOnNotes && <p className="text-xs text-zinc-600 mt-0.5">{t.waitingOnNotes}</p>}
+                <p className="text-xl font-semibold text-[var(--svaas-brown-dark)] leading-tight flex-1">{t.title}</p>
+                <KebabMenu actions={getKebabActions(t)} />
+              </div>
+              <p className="text-xs text-[var(--svaas-brown-light)]">{t.department} · {t.owner}</p>
+              <p className="text-sm text-[var(--svaas-clay)]">If ignored → {getConsequence(t)}</p>
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => handleDone(t)} className="px-4 py-2.5 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium">✓ Done</button>
+                <button onClick={() => setShowWaitingForm(t.id)} className="px-4 py-2.5 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-sm rounded-xl">Waiting On</button>
+              </div>
+
+              {/* Inline forms */}
+              {showWaitingForm === t.id && (
+                <div className="border border-[var(--svaas-sand)] rounded-xl p-3 space-y-2 bg-white">
+                  <input value={waitPerson} onChange={e => setWaitPerson(e.target.value)} placeholder="Who?" className="w-full px-3 py-2 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)] rounded-xl text-sm text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" />
+                  <input type="date" value={waitDate} onChange={e => setWaitDate(e.target.value)} className="w-full px-3 py-2 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)] rounded-xl text-sm text-[var(--svaas-brown-dark)] focus:outline-none" />
+                  <input value={waitNotes} onChange={e => setWaitNotes(e.target.value)} placeholder="Notes (optional)" className="w-full px-3 py-2 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)] rounded-xl text-sm text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" />
+                  <div className="flex gap-2">
+                    <button onClick={() => handleWaitingOn(t.id)} disabled={!waitPerson.trim()} className="px-3 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-xs rounded-xl disabled:opacity-30">Save</button>
+                    <button onClick={() => setShowWaitingForm(null)} className="px-3 py-2 text-[var(--svaas-brown-light)] text-xs">Cancel</button>
+                  </div>
                 </div>
-                <button onClick={() => handleDone(t)} className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs rounded-lg shrink-0">Received</button>
-              </div>
+              )}
+              {showBlockForm === t.id && (
+                <div className="border border-[var(--svaas-sand)] rounded-xl p-3 space-y-2 bg-white">
+                  <input value={blockReason} onChange={e => setBlockReason(e.target.value)} placeholder="What is blocking this?" className="w-full px-3 py-2 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)] rounded-xl text-sm text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" onKeyDown={e => e.key === 'Enter' && handleBlock(t.id)} autoFocus />
+                  <div className="flex gap-2">
+                    <button onClick={() => handleBlock(t.id)} disabled={!blockReason.trim()} className="px-3 py-2 bg-[var(--svaas-clay)] text-white text-xs rounded-xl disabled:opacity-30">Block</button>
+                    <button onClick={() => { setShowBlockForm(null); setBlockReason(''); }} className="px-3 py-2 text-[var(--svaas-brown-light)] text-xs">Cancel</button>
+                  </div>
+                </div>
+              )}
+              {showDeferForm === t.id && (
+                <div className="border border-[var(--svaas-sand)] rounded-xl p-3 space-y-2 bg-white">
+                  <input value={deferReason} onChange={e => setDeferReason(e.target.value)} placeholder="Why defer?" className="w-full px-3 py-2 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)] rounded-xl text-sm text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" />
+                  <input type="date" value={deferDate} onChange={e => setDeferDate(e.target.value)} className="w-full px-3 py-2 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)] rounded-xl text-sm text-[var(--svaas-brown-dark)] focus:outline-none" />
+                  <div className="flex gap-2">
+                    <button onClick={() => handleDefer(t.id)} disabled={!deferReason.trim()} className="px-3 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-xs rounded-xl disabled:opacity-30">Defer</button>
+                    <button onClick={() => setShowDeferForm(null)} className="px-3 py-2 text-[var(--svaas-brown-light)] text-xs">Cancel</button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
-        </div>
+        </section>
       )}
 
-      {/* Blocked */}
-      {blocked.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="text-sm font-medium text-red-400 uppercase tracking-wide">Blocked ({blocked.length})</h2>
-          {blocked.slice(0, 3).map((t: any) => (
-            <div key={t.id} className="border border-red-900/40 bg-red-950/10 rounded-xl p-3">
-              <p className="text-zinc-200 text-sm font-medium">{t.title}</p>
-              <p className="text-xs text-red-400">{t.blockedReason}</p>
-            </div>
-          ))}
-          {blocked.length > 3 && (
-            <Link href="/warroom" className="text-xs text-red-400 hover:text-red-300">+{blocked.length - 3} more in War Room →</Link>
-          )}
-        </div>
-      )}
-
-      {/* Overdue */}
-      {overdue.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="text-sm font-medium text-red-400 uppercase tracking-wide">Overdue ({overdue.length})</h2>
-          {overdue.slice(0, 3).map((t: any) => (
-            <div key={t.id} className="border border-red-900/40 bg-red-950/10 rounded-xl p-3 flex items-center justify-between">
-              <div>
-                <p className="text-zinc-200 text-sm font-medium">{t.title}</p>
-                <p className="text-xs text-zinc-500">{dayNumber - (t.dayRangeEnd || 0)}d overdue</p>
-              </div>
-              <button onClick={() => handleDone(t)} className="px-3 py-1.5 bg-emerald-700 text-white text-xs rounded-lg">Done</button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Top Actions */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wide">Do Next</h2>
+      {/* DO NEXT */}
+      <section className="space-y-2">
+        <p className="text-[10px] text-[var(--svaas-brown-light)] uppercase tracking-widest font-semibold">Do Next</p>
         {actionable.map((task: any) => (
-          <div key={task.id} className="border border-zinc-800 rounded-xl p-4 space-y-3 bg-zinc-900/20">
-            <div>
-              <h3 className="font-medium text-zinc-100">{task.title}</h3>
-              <p className="text-xs text-zinc-500 mt-0.5">{task.department} &bull; {task.owner}</p>
-              <p className="text-xs text-red-400/70 mt-1">If ignored → {getConsequence(task)}</p>
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => handleDone(task)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-medium">✓ Done</button>
-              <button onClick={() => commitTask(task.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg">Commit Today</button>
-              <button onClick={() => startTask(task.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg">Start</button>
-              <button onClick={() => setShowWaitingForm(task.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-blue-400 text-xs rounded-lg">Waiting On</button>
-              <button onClick={() => setShowBlockForm(task.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-red-400 text-xs rounded-lg">Blocked</button>
-              <button onClick={() => setShowDeferForm(task.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-500 text-xs rounded-lg">Defer</button>
-              <button onClick={() => cancelTask(task.id)} className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-600 text-xs rounded-lg">Cancel</button>
-            </div>
-
-            {/* Block form */}
-            {showBlockForm === task.id && (
-              <div className="border border-red-900/40 rounded-lg p-3 space-y-2">
-                <input value={blockReason} onChange={e => setBlockReason(e.target.value)} placeholder="What is blocking this?" className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" onKeyDown={e => e.key === 'Enter' && handleBlock(task.id)} autoFocus />
-                <div className="flex gap-2">
-                  <button onClick={() => handleBlock(task.id)} disabled={!blockReason.trim()} className="px-3 py-1.5 bg-red-700 hover:bg-red-600 disabled:opacity-30 text-white text-xs rounded-lg">Block</button>
-                  <button onClick={() => { setShowBlockForm(null); setBlockReason(''); }} className="px-3 py-1.5 text-zinc-500 text-xs">Cancel</button>
-                </div>
+          <div key={task.id} className="border border-[var(--svaas-sand)] bg-[var(--svaas-cream)] rounded-2xl p-4 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[var(--svaas-brown-dark)]">{task.title}</p>
+                <p className="text-xs text-[var(--svaas-brown-light)] mt-0.5">{task.priority} · {task.department}</p>
+                {task.source === 'founder' && <span className="inline-block mt-1 text-[9px] px-1.5 py-0.5 bg-[var(--svaas-amber-light)] text-[var(--svaas-amber)] rounded-md font-medium">You created</span>}
               </div>
-            )}
+              <KebabMenu actions={getKebabActions(task)} />
+            </div>
+            <p className="text-xs text-[var(--svaas-clay)]">If ignored → {getConsequence(task)}</p>
+            <div className="flex gap-2">
+              <button onClick={() => commitTask(task.id)} className="px-3 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-xs rounded-xl font-medium">Commit</button>
+              <button onClick={() => handleDone(task)} className="px-3 py-2 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-xs rounded-xl">Done</button>
+            </div>
 
-            {/* Waiting On form */}
+            {/* Inline forms for this task */}
             {showWaitingForm === task.id && (
-              <div className="border border-blue-900/40 rounded-lg p-3 space-y-2">
-                <input value={waitPerson} onChange={e => setWaitPerson(e.target.value)} placeholder="Who? (person/vendor)" className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
-                <div className="space-y-1">
-                  <label className="text-xs text-zinc-500">Expected follow-up date</label>
-                  <input type="date" value={waitDate} onChange={e => setWaitDate(e.target.value)} className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
-                </div>
-                <input value={waitNotes} onChange={e => setWaitNotes(e.target.value)} placeholder="Notes (optional)" className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
+              <div className="border border-[var(--svaas-sand)] rounded-xl p-3 space-y-2 bg-white">
+                <input value={waitPerson} onChange={e => setWaitPerson(e.target.value)} placeholder="Who?" className="w-full px-3 py-2 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)] rounded-xl text-sm text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" />
+                <input type="date" value={waitDate} onChange={e => setWaitDate(e.target.value)} className="w-full px-3 py-2 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)] rounded-xl text-sm text-[var(--svaas-brown-dark)] focus:outline-none" />
                 <div className="flex gap-2">
-                  <button onClick={() => handleWaitingOn(task.id)} disabled={!waitPerson.trim()} className="px-3 py-1.5 bg-blue-700 hover:bg-blue-600 disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs rounded-lg">Save</button>
-                  <button onClick={() => setShowWaitingForm(null)} className="px-3 py-1.5 text-zinc-500 text-xs">Cancel</button>
+                  <button onClick={() => handleWaitingOn(task.id)} disabled={!waitPerson.trim()} className="px-3 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-xs rounded-xl disabled:opacity-30">Save</button>
+                  <button onClick={() => setShowWaitingForm(null)} className="px-3 py-2 text-[var(--svaas-brown-light)] text-xs">Cancel</button>
                 </div>
               </div>
             )}
-
-            {/* Defer form */}
-            {showDeferForm === task.id && (
-              <div className="border border-zinc-700 rounded-lg p-3 space-y-2">
-                <input value={deferReason} onChange={e => setDeferReason(e.target.value)} placeholder="Why defer?" className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
-                <div className="space-y-1">
-                  <label className="text-xs text-zinc-500">Review date (when to resurface)</label>
-                  <input type="date" value={deferDate} onChange={e => setDeferDate(e.target.value)} className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
-                </div>
+            {showBlockForm === task.id && (
+              <div className="border border-[var(--svaas-sand)] rounded-xl p-3 space-y-2 bg-white">
+                <input value={blockReason} onChange={e => setBlockReason(e.target.value)} placeholder="What is blocking this?" className="w-full px-3 py-2 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)] rounded-xl text-sm text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" onKeyDown={e => e.key === 'Enter' && handleBlock(task.id)} autoFocus />
                 <div className="flex gap-2">
-                  <button onClick={() => handleDefer(task.id)} className="px-3 py-1.5 bg-zinc-700 text-white text-xs rounded-lg">Defer</button>
-                  <button onClick={() => setShowDeferForm(null)} className="px-3 py-1.5 text-zinc-500 text-xs">Cancel</button>
+                  <button onClick={() => handleBlock(task.id)} disabled={!blockReason.trim()} className="px-3 py-2 bg-[var(--svaas-clay)] text-white text-xs rounded-xl disabled:opacity-30">Block</button>
+                  <button onClick={() => { setShowBlockForm(null); setBlockReason(''); }} className="px-3 py-2 text-[var(--svaas-brown-light)] text-xs">Cancel</button>
+                </div>
+              </div>
+            )}
+            {showDeferForm === task.id && (
+              <div className="border border-[var(--svaas-sand)] rounded-xl p-3 space-y-2 bg-white">
+                <input value={deferReason} onChange={e => setDeferReason(e.target.value)} placeholder="Why defer?" className="w-full px-3 py-2 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)] rounded-xl text-sm text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" />
+                <input type="date" value={deferDate} onChange={e => setDeferDate(e.target.value)} className="w-full px-3 py-2 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)] rounded-xl text-sm text-[var(--svaas-brown-dark)] focus:outline-none" />
+                <div className="flex gap-2">
+                  <button onClick={() => handleDefer(task.id)} disabled={!deferReason.trim()} className="px-3 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-xs rounded-xl disabled:opacity-30">Defer</button>
+                  <button onClick={() => setShowDeferForm(null)} className="px-3 py-2 text-[var(--svaas-brown-light)] text-xs">Cancel</button>
                 </div>
               </div>
             )}
           </div>
         ))}
-      </div>
+      </section>
 
-      {/* Nav */}
+      {/* ADD TASK */}
+      <section>
+        {showAddTask ? (
+          <div className="border border-[var(--svaas-sand)] bg-[var(--svaas-cream)] rounded-2xl p-4 space-y-2">
+            <input
+              value={newTaskTitle}
+              onChange={e => setNewTaskTitle(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAddTask()}
+              placeholder="What needs to happen?"
+              className="w-full px-3 py-2.5 bg-white border border-[var(--svaas-sand)] rounded-xl text-sm text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none focus:border-[var(--svaas-brown)]/40"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button onClick={handleAddTask} disabled={!newTaskTitle.trim()} className="px-4 py-2 bg-[var(--svaas-brown)] text-[var(--svaas-ivory)] text-sm rounded-xl font-medium disabled:opacity-30">Add</button>
+              <button onClick={() => { setShowAddTask(false); setNewTaskTitle(''); }} className="px-4 py-2 text-[var(--svaas-brown-light)] text-sm">Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowAddTask(true)}
+            className="w-full py-3 border border-dashed border-[var(--svaas-sand)] rounded-2xl text-sm text-[var(--svaas-brown-light)] hover:border-[var(--svaas-brown)]/30 hover:text-[var(--svaas-brown)] transition-colors"
+          >
+            + Add task
+          </button>
+        )}
+      </section>
+
       <AppNav />
     </div>
   );

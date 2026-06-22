@@ -8,8 +8,8 @@ import { DailyLifecycleManager } from "@/lib/daily-lifecycle";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "SVAAS Venture OS",
-  description: "Founder Execution System for SVAAS",
+  title: "SVAAS",
+  description: "Founder OS — Your Chief of Staff",
 };
 
 export default function RootLayout({
@@ -18,12 +18,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.className} bg-zinc-950 text-zinc-100 min-h-screen`}>
+    <html lang="en">
+      <body className={`${inter.className} bg-[var(--svaas-ivory)] text-[var(--svaas-brown-dark)] min-h-screen`}>
         <ToastProvider>
           <StateProvider>
             <DailyLifecycleManager />
-            <main className="max-w-5xl mx-auto px-4 py-6">
+            <main className="max-w-2xl mx-auto px-5 py-6">
               {children}
             </main>
           </StateProvider>

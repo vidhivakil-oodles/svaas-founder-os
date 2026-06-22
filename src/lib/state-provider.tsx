@@ -34,6 +34,11 @@ interface StateContextValue {
   setWeeklyCommitment: (text: string) => void;
   // Review
   closeWeek: () => void;
+  // Task notes
+  addTaskNote: (taskId: string, text: string) => void;
+  // Founder-created
+  addFounderTask: (title: string, streamSlug?: string) => void;
+  addFounderDecision: (title: string, context?: string) => void;
 }
 
 const StateContext = createContext<StateContextValue | null>(null);
@@ -461,6 +466,93 @@ export function StateProvider({ children }: { children: ReactNode }) {
     showToast(`Week ${weekNumber} closed. ${completedThisWeek} tasks done.`, 'success');
   }, [state.tasks, addJournalEntry, showToast]);
 
+  // Task Notes — add timestamped note to a task
+  const addTaskNote = useCallback((taskId: string, text: string) => {
+    const note = {
+      id: `note-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      text,
+      createdAt: new Date().toISOString(),
+    };
+    setState(prev => ({
+      ...prev,
+      tasks: prev.tasks.map(t =>
+        t.id === taskId ? { ...t, notes: [...(t.notes || []), note] } : t
+      ),
+    }));
+    const task = state.tasks.find(t => t.id === taskId);
+    if (task) {
+      addJournalEntry('task_note_added', `${task.title}: ${text}`, taskId, task.streamId);
+    }
+    showToast('Note saved.', 'success');
+  }, [state.tasks, addJournalEntry, showToast]);
+
+  // Founder-created task
+  const addFounderTask = useCallback((title: string, streamSlug?: string) => {
+    const stream = streamSlug ? state.streams.find(s => s.slug === streamSlug) : state.streams[0];
+    const newTask = {
+      id: `founder-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      streamId: stream?.id || 'general',
+      streamSlug: stream?.slug || 'general',
+      taskNumber: null,
+      department: 'General',
+      category: 'Founder',
+      title,
+      description: null,
+      notesDependencies: null,
+      priority: 'HIGH' as const,
+      phase: 'P0',
+      dayRangeStart: null,
+      dayRangeEnd: null,
+      costLow: 0,
+      costLikely: 0,
+      costHigh: 0,
+      owner: 'Vidhi',
+      status: 'not_started' as const,
+      blockedReason: null,
+      completedAt: null,
+      notes: [],
+      source: 'founder' as const,
+      createdAt: new Date().toISOString(),
+    };
+    setState(prev => ({
+      ...prev,
+      tasks: [...prev.tasks, newTask],
+    }));
+    addJournalEntry('task_created', `Created: ${title}`, newTask.id, stream?.id);
+    showToast(`Task added: ${title.slice(0, 40)}`, 'success');
+  }, [state.streams, addJournalEntry, showToast]);
+
+  // Founder-created decision
+  const addFounderDecision = useCallback((title: string, context?: string) => {
+    const newDecision = {
+      id: `decision-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      title,
+      context: context || null,
+      options: [],
+      defaultOption: null,
+      defaultRationale: null,
+      deadline: null,
+      status: 'pending' as const,
+      decisionMade: null,
+      rationale: null,
+      decidedAt: null,
+      deferCount: 0,
+      maxDeferrals: 3,
+      blocksTasks: [],
+      impactScore: 5,
+      streamsAffected: 1,
+      tasksAffected: 0,
+      estimatedDelayDays: 0,
+      cascadeDepth: 0,
+    };
+    setState(prev => ({
+      ...prev,
+      decisions: [...prev.decisions, newDecision],
+    }));
+    addJournalEntry('decision_created', `New decision: ${title}`);
+    showToast(`Decision added: ${title.slice(0, 40)}`, 'success');
+  }, [addJournalEntry, showToast]);
+
   return (
     <StateContext.Provider value={{
       state,
@@ -482,6 +574,9 @@ export function StateProvider({ children }: { children: ReactNode }) {
       cancelTask,
       setWeeklyCommitment,
       closeWeek,
+      addTaskNote,
+      addFounderTask,
+      addFounderDecision,
     }}>
       {children}
     </StateContext.Provider>

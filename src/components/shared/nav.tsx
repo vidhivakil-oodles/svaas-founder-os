@@ -2,48 +2,51 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
+import { SearchTrigger, SearchOverlay } from './search-overlay';
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Home', icon: '◉' },
-  { href: '/today', label: 'Today', icon: '▸' },
-  { href: '/decisions', label: 'Decisions', icon: '◇' },
-  { href: '/review', label: 'Review', icon: '↻' },
-  { href: '/warroom', label: 'War Room', icon: '⚡', accent: true },
+  { href: '/', label: 'Home' },
+  { href: '/today', label: 'Today' },
+  { href: '/decisions', label: 'Decisions' },
+  { href: '/review', label: 'Review' },
 ];
 
 export function AppNav() {
   const pathname = usePathname();
+  const [searchOpen, setSearchOpen] = useState(false);
 
   return (
-    <nav className="flex items-center gap-1 pt-4 border-t border-zinc-800 flex-wrap">
-      {NAV_ITEMS.map(item => {
-        const isActive = pathname === item.href;
-        const isAccent = item.accent;
-
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`px-3 py-2 rounded-lg text-sm transition-colors ${
-              isActive
-                ? 'bg-zinc-800 text-zinc-100 font-medium'
-                : isAccent
-                ? 'border border-red-900/40 text-red-400 hover:border-red-700/40'
-                : 'border border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300'
-            }`}
-          >
-            <span className="mr-1.5">{item.icon}</span>
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <>
+      <nav className="flex items-center justify-between pt-6 border-t border-[var(--svaas-sand)]">
+        <div className="flex items-center gap-1">
+          {NAV_ITEMS.map(item => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`px-3 py-2 rounded-xl text-sm transition-colors ${
+                  isActive
+                    ? 'bg-[var(--svaas-cream)] text-[var(--svaas-brown-dark)] font-medium'
+                    : 'text-[var(--svaas-brown-light)] hover:text-[var(--svaas-brown)]'
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+        <SearchTrigger onClick={() => setSearchOpen(true)} />
+      </nav>
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
+    </>
   );
 }
 
 export function BackToHome() {
   return (
-    <Link href="/" className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+    <Link href="/" className="text-xs text-[var(--svaas-brown-light)] hover:text-[var(--svaas-brown)] transition-colors">
       ← Home
     </Link>
   );

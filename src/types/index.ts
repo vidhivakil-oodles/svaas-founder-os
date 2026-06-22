@@ -44,6 +44,12 @@ export interface StreamDependency {
   strength: number;
 }
 
+export interface TaskNote {
+  id: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface Task {
   id: string;
   streamId: string;
@@ -74,6 +80,11 @@ export interface Task {
   deferredReviewDate?: string | null;
   // Committed
   committedAt?: string | null;
+  // Task notes (timestamped)
+  notes?: TaskNote[];
+  // Source tracking
+  source?: 'imported' | 'founder';
+  createdAt?: string;
   // Computed
   leverageScore?: number;
   downstreamCount?: number;
