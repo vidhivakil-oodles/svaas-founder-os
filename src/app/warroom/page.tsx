@@ -43,8 +43,8 @@ export default function WarRoomPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-2xl mx-auto">
-      <header className="pt-3">
+    <div className="space-y-0 max-w-2xl mx-auto">
+      <header className="pt-3 pb-6 border-b border-[var(--svaas-sand)]/30">
         <BackToHome />
         <div className="mt-4">
           <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-clay)] uppercase">War Room</p>
@@ -54,28 +54,26 @@ export default function WarRoomPage() {
 
       {totalFires === 0 && (
         <div className="py-12 text-center">
-          <p className="text-[18px] text-[var(--svaas-olive)] font-medium">All clear.</p>
+          <p className="text-[18px] text-[var(--svaas-olive)] font-medium font-[family-name:var(--font-serif)]">All clear.</p>
           <p className="text-[14px] text-[var(--svaas-brown-light)] mt-2">No overdue, blocked, or critical decisions.</p>
         </div>
       )}
 
-      {/* Overdue Critical - compact rows with left clay spine */}
+      {/* Overdue Critical - grouped rows with left clay spine */}
       {overdueTasks.length > 0 && (
-        <section>
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-clay)] uppercase mb-3">Overdue critical ({overdueTasks.length})</p>
-          <div className="border border-[var(--svaas-sand)]/30 bg-[var(--svaas-cream)] rounded-xl overflow-hidden divide-y divide-[var(--svaas-sand)]/20">
+        <section className="py-6 border-b border-[var(--svaas-sand)]/20">
+          <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-clay)] uppercase mb-4">Overdue critical ({overdueTasks.length})</p>
+          <div className="space-y-0 divide-y divide-[var(--svaas-sand)]/15">
             {overdueTasks.map((t: any) => (
-              <div key={t.id} className="flex items-center gap-0">
-                <div className="w-1 self-stretch bg-[var(--svaas-clay)] shrink-0" />
-                <div className="flex-1 px-5 py-3.5 flex items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-medium text-[var(--svaas-brown-dark)]">{t.title}</p>
-                    <p className="text-[12px] text-[var(--svaas-brown-light)] mt-0.5">{t.department} · {t.owner} · {dayNumber - t.dayRangeEnd}d overdue</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => markTaskDone(t.id)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Done</button>
-                    <KebabMenu actions={getOverdueKebab(t)} />
-                  </div>
+              <div key={t.id} className="flex items-center gap-3 py-3">
+                <div className="w-0.5 self-stretch bg-[var(--svaas-clay)] shrink-0 rounded-full" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-medium text-[var(--svaas-brown-dark)]">{t.title}</p>
+                  <p className="text-[12px] text-[var(--svaas-brown-light)] mt-0.5">{t.department} · {t.owner} · {dayNumber - t.dayRangeEnd}d overdue</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={() => markTaskDone(t.id)} className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[12px] rounded-lg font-medium">Done</button>
+                  <KebabMenu actions={getOverdueKebab(t)} />
                 </div>
               </div>
             ))}
@@ -83,24 +81,22 @@ export default function WarRoomPage() {
         </section>
       )}
 
-      {/* Blocked - compact rows with left amber/sand spine */}
+      {/* Blocked - grouped rows with left sand spine */}
       {blockedTasks.length > 0 && (
-        <section>
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-brown)] uppercase mb-3">Blocked ({blockedTasks.length})</p>
-          <div className="border border-[var(--svaas-sand)]/30 bg-[var(--svaas-cream)] rounded-xl overflow-hidden divide-y divide-[var(--svaas-sand)]/20">
+        <section className="py-6 border-b border-[var(--svaas-sand)]/20">
+          <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-brown)] uppercase mb-4">Blocked ({blockedTasks.length})</p>
+          <div className="space-y-0 divide-y divide-[var(--svaas-sand)]/15">
             {blockedTasks.map((t: any) => (
-              <div key={t.id} className="flex items-center gap-0">
-                <div className="w-1 self-stretch bg-[var(--svaas-sand)] shrink-0" />
-                <div className="flex-1 px-5 py-3.5 flex items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-medium text-[var(--svaas-brown-dark)]">{t.title}</p>
-                    <p className="text-[12px] text-[var(--svaas-clay)] mt-0.5">{t.blockedReason}</p>
-                    <p className="text-[11px] text-[var(--svaas-brown-light)] mt-0.5">{t.department} · {t.owner}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => unblockTask(t.id)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Unblock</button>
-                    <KebabMenu actions={getBlockedKebab(t)} />
-                  </div>
+              <div key={t.id} className="flex items-center gap-3 py-3">
+                <div className="w-0.5 self-stretch bg-[var(--svaas-sand)] shrink-0 rounded-full" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-medium text-[var(--svaas-brown-dark)]">{t.title}</p>
+                  <p className="text-[12px] text-[var(--svaas-clay)] mt-0.5">{t.blockedReason}</p>
+                  <p className="text-[11px] text-[var(--svaas-brown-light)] mt-0.5">{t.department} · {t.owner}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={() => unblockTask(t.id)} className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[12px] rounded-lg font-medium">Unblock</button>
+                  <KebabMenu actions={getBlockedKebab(t)} />
                 </div>
               </div>
             ))}
@@ -108,46 +104,42 @@ export default function WarRoomPage() {
         </section>
       )}
 
-      {/* Critical Decisions Overdue - compact rows with olive spine */}
+      {/* Critical Decisions Overdue - rows with olive spine */}
       {criticalDecisions.length > 0 && (
-        <section>
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase mb-3">Decisions overdue ({criticalDecisions.length})</p>
-          <div className="border border-[var(--svaas-sand)]/30 bg-[var(--svaas-cream)] rounded-xl overflow-hidden divide-y divide-[var(--svaas-sand)]/20">
+        <section className="py-6 border-b border-[var(--svaas-sand)]/20">
+          <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase mb-4">Decisions overdue ({criticalDecisions.length})</p>
+          <div className="space-y-0 divide-y divide-[var(--svaas-sand)]/15">
             {criticalDecisions.map((d: any) => (
-              <div key={d.id} className="flex items-center gap-0">
-                <div className="w-1 self-stretch bg-[var(--svaas-olive)] shrink-0" />
-                <div className="flex-1 px-5 py-3.5 flex items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-medium text-[var(--svaas-brown-dark)]">{d.title}</p>
-                    <p className="text-[12px] text-[var(--svaas-brown-light)] mt-0.5">Recommended: {d.defaultOption}</p>
-                  </div>
-                  <button onClick={() => acceptDecisionDefault(d.id)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium shrink-0">Accept</button>
+              <div key={d.id} className="flex items-center gap-3 py-3">
+                <div className="w-0.5 self-stretch bg-[var(--svaas-olive)] shrink-0 rounded-full" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-medium text-[var(--svaas-brown-dark)]">{d.title}</p>
+                  <p className="text-[12px] text-[var(--svaas-brown-light)] mt-0.5">Recommended: {d.defaultOption}</p>
                 </div>
+                <button onClick={() => acceptDecisionDefault(d.id)} className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[12px] rounded-lg font-medium shrink-0">Accept</button>
               </div>
             ))}
           </div>
         </section>
       )}
 
-      {/* Waiting On - Overdue - compact rows with slate spine */}
+      {/* Waiting On - Overdue - rows with slate spine */}
       {overdueWaiting.length > 0 && (
-        <section>
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-slate)] uppercase mb-3">Waiting on - overdue ({overdueWaiting.length})</p>
-          <div className="border border-[var(--svaas-sand)]/30 bg-[var(--svaas-cream)] rounded-xl overflow-hidden divide-y divide-[var(--svaas-sand)]/20">
+        <section className="py-6">
+          <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-slate)] uppercase mb-4">Waiting on - overdue ({overdueWaiting.length})</p>
+          <div className="space-y-0 divide-y divide-[var(--svaas-sand)]/15">
             {overdueWaiting.map((t: any) => {
               const expectedDate = new Date(t.waitingOnDate);
               const daysLate = Math.floor((today.getTime() - expectedDate.getTime()) / (1000 * 60 * 60 * 24));
               return (
-                <div key={t.id} className="flex items-center gap-0">
-                  <div className="w-1 self-stretch bg-[var(--svaas-slate)] shrink-0" />
-                  <div className="flex-1 px-5 py-3.5 flex items-center justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[14px] font-medium text-[var(--svaas-brown-dark)]">{t.title}</p>
-                      <p className="text-[12px] text-[var(--svaas-slate)] mt-0.5">{t.waitingOnPerson} · {daysLate}d late</p>
-                      {t.waitingOnNotes && <p className="text-[11px] text-[var(--svaas-brown-light)] mt-0.5">{t.waitingOnNotes}</p>}
-                    </div>
-                    <button onClick={() => markTaskDone(t.id)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium shrink-0">Received</button>
+                <div key={t.id} className="flex items-center gap-3 py-3">
+                  <div className="w-0.5 self-stretch bg-[var(--svaas-slate)] shrink-0 rounded-full" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-medium text-[var(--svaas-brown-dark)]">{t.title}</p>
+                    <p className="text-[12px] text-[var(--svaas-slate)] mt-0.5">{t.waitingOnPerson} · {daysLate}d late</p>
+                    {t.waitingOnNotes && <p className="text-[11px] text-[var(--svaas-brown-light)] mt-0.5">{t.waitingOnNotes}</p>}
                   </div>
+                  <button onClick={() => markTaskDone(t.id)} className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[12px] rounded-lg font-medium shrink-0">Received</button>
                 </div>
               );
             })}

@@ -152,10 +152,10 @@ export default function TodayPage() {
     return (
       <>
         {showWaitingForm === taskId && (
-          <div className="border border-[var(--svaas-sand)] rounded-lg p-3 space-y-2 bg-white mt-3">
-            <input value={waitPerson} onChange={e => setWaitPerson(e.target.value)} placeholder="Who?" className="w-full px-3 py-2 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)] rounded-lg text-[13px] text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" />
-            <input type="date" value={waitDate} onChange={e => setWaitDate(e.target.value)} className="w-full px-3 py-2 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)] rounded-lg text-[13px] text-[var(--svaas-brown-dark)] focus:outline-none" />
-            <input value={waitNotes} onChange={e => setWaitNotes(e.target.value)} placeholder="Notes (optional)" className="w-full px-3 py-2 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)] rounded-lg text-[13px] text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" />
+          <div className="border-t border-[var(--svaas-sand)]/30 pt-3 mt-3 space-y-2">
+            <input value={waitPerson} onChange={e => setWaitPerson(e.target.value)} placeholder="Who?" className="w-full px-3 py-2 bg-white border border-[var(--svaas-sand)]/40 rounded-lg text-[13px] text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" />
+            <input type="date" value={waitDate} onChange={e => setWaitDate(e.target.value)} className="w-full px-3 py-2 bg-white border border-[var(--svaas-sand)]/40 rounded-lg text-[13px] text-[var(--svaas-brown-dark)] focus:outline-none" />
+            <input value={waitNotes} onChange={e => setWaitNotes(e.target.value)} placeholder="Notes (optional)" className="w-full px-3 py-2 bg-white border border-[var(--svaas-sand)]/40 rounded-lg text-[13px] text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" />
             <div className="flex gap-2">
               <button onClick={() => handleWaitingOn(taskId)} disabled={!waitPerson.trim()} className="px-3 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg disabled:opacity-30">Save</button>
               <button onClick={() => setShowWaitingForm(null)} className="px-3 py-2 text-[var(--svaas-brown-light)] text-[13px]">Cancel</button>
@@ -163,8 +163,8 @@ export default function TodayPage() {
           </div>
         )}
         {showBlockForm === taskId && (
-          <div className="border border-[var(--svaas-sand)] rounded-lg p-3 space-y-2 bg-white mt-3">
-            <input value={blockReason} onChange={e => setBlockReason(e.target.value)} placeholder="What is blocking this?" className="w-full px-3 py-2 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)] rounded-lg text-[13px] text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" onKeyDown={e => e.key === 'Enter' && handleBlock(taskId)} autoFocus />
+          <div className="border-t border-[var(--svaas-sand)]/30 pt-3 mt-3 space-y-2">
+            <input value={blockReason} onChange={e => setBlockReason(e.target.value)} placeholder="What is blocking this?" className="w-full px-3 py-2 bg-white border border-[var(--svaas-sand)]/40 rounded-lg text-[13px] text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" onKeyDown={e => e.key === 'Enter' && handleBlock(taskId)} autoFocus />
             <div className="flex gap-2">
               <button onClick={() => handleBlock(taskId)} disabled={!blockReason.trim()} className="px-3 py-2 bg-[var(--svaas-clay)] text-white text-[13px] rounded-lg disabled:opacity-30">Block</button>
               <button onClick={() => { setShowBlockForm(null); setBlockReason(''); }} className="px-3 py-2 text-[var(--svaas-brown-light)] text-[13px]">Cancel</button>
@@ -172,9 +172,9 @@ export default function TodayPage() {
           </div>
         )}
         {showDeferForm === taskId && (
-          <div className="border border-[var(--svaas-sand)] rounded-lg p-3 space-y-2 bg-white mt-3">
-            <input value={deferReason} onChange={e => setDeferReason(e.target.value)} placeholder="Why defer?" className="w-full px-3 py-2 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)] rounded-lg text-[13px] text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" />
-            <input type="date" value={deferDate} onChange={e => setDeferDate(e.target.value)} className="w-full px-3 py-2 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)] rounded-lg text-[13px] text-[var(--svaas-brown-dark)] focus:outline-none" />
+          <div className="border-t border-[var(--svaas-sand)]/30 pt-3 mt-3 space-y-2">
+            <input value={deferReason} onChange={e => setDeferReason(e.target.value)} placeholder="Why defer?" className="w-full px-3 py-2 bg-white border border-[var(--svaas-sand)]/40 rounded-lg text-[13px] text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" />
+            <input type="date" value={deferDate} onChange={e => setDeferDate(e.target.value)} className="w-full px-3 py-2 bg-white border border-[var(--svaas-sand)]/40 rounded-lg text-[13px] text-[var(--svaas-brown-dark)] focus:outline-none" />
             <div className="flex gap-2">
               <button onClick={() => handleDefer(taskId)} disabled={!deferReason.trim()} className="px-3 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg disabled:opacity-30">Defer</button>
               <button onClick={() => setShowDeferForm(null)} className="px-3 py-2 text-[var(--svaas-brown-light)] text-[13px]">Cancel</button>
@@ -186,61 +186,64 @@ export default function TodayPage() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <header className="pt-3 flex items-baseline justify-between">
+    <div className="space-y-0">
+      {/* Header - editorial masthead */}
+      <header className="pt-3 pb-6 flex items-baseline justify-between border-b border-[var(--svaas-sand)]/30">
         <div>
           <p className="text-[13px] text-[var(--svaas-brown-light)] tracking-wide">Day {dayNumber} · Week {weekNumber}</p>
           <h1 className="text-[24px] font-medium text-[var(--svaas-brown-dark)] mt-1 font-[family-name:var(--font-serif)]">Good morning, Vidhi.</h1>
-          <p className="text-[12px] text-[var(--svaas-brown-light)] mt-1">Drishti briefing</p>
+          <p className="text-[12px] text-[var(--svaas-brown-light)] mt-0.5">Drishti briefing · {daysToLaunch}d to launch</p>
         </div>
-        <p className="text-[13px] text-[var(--svaas-brown-light)]">{daysToLaunch}d to launch</p>
       </header>
 
-      {/* Quick Note */}
-      <div className="flex gap-2">
-        <input
-          value={quickNote}
-          onChange={e => setQuickNote(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleQuickNote()}
-          placeholder="Add a note..."
-          className="flex-1 px-4 py-2.5 bg-[var(--svaas-cream)] border border-[var(--svaas-sand)]/40 rounded-lg text-[14px] text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none focus:border-[var(--svaas-brown)]/40"
-        />
-        {quickNote.trim() && (
-          <button onClick={handleQuickNote} className="px-4 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Add</button>
-        )}
+      {/* Quick Note - minimal inline */}
+      <div className="py-4 border-b border-[var(--svaas-sand)]/20">
+        <div className="flex gap-2">
+          <input
+            value={quickNote}
+            onChange={e => setQuickNote(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleQuickNote()}
+            placeholder="Add a note..."
+            className="flex-1 px-4 py-2.5 bg-transparent border border-[var(--svaas-sand)]/40 rounded-lg text-[14px] text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none focus:border-[var(--svaas-brown)]/40"
+          />
+          {quickNote.trim() && (
+            <button onClick={handleQuickNote} className="px-4 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Add</button>
+          )}
+        </div>
       </div>
 
-      {/* Wins */}
+      {/* Wins - editorial inline */}
       {wins.length > 0 && (
-        <div className="flex gap-0 rounded-xl overflow-hidden border border-[var(--svaas-sand)]/30">
-          <div className="w-1.5 bg-[var(--svaas-olive)] shrink-0" />
-          <div className="flex-1 px-5 py-4 bg-[var(--svaas-cream)]">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Done</p>
-              {undoAvailable && (
-                <button onClick={handleUndo} className="text-[13px] text-[var(--svaas-brown-light)] hover:text-[var(--svaas-brown)]">Undo</button>
-              )}
+        <div className="py-4 border-b border-[var(--svaas-sand)]/20">
+          <div className="flex items-start gap-3">
+            <div className="w-0.5 self-stretch bg-[var(--svaas-olive)] shrink-0 rounded-full" />
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Done</p>
+                {undoAvailable && (
+                  <button onClick={handleUndo} className="text-[12px] text-[var(--svaas-brown-light)] hover:text-[var(--svaas-brown)]">Undo</button>
+                )}
+              </div>
+              {wins.map((w, i) => <p key={i} className="text-[14px] text-[var(--svaas-brown)]">{w}</p>)}
             </div>
-            {wins.map((w, i) => <p key={i} className="text-[14px] text-[var(--svaas-brown)]">{w}</p>)}
           </div>
         </div>
       )}
 
-      {/* OVERDUE FOLLOW-UPS */}
+      {/* OVERDUE FOLLOW-UPS - thin ruled list */}
       {overdueWaiting.length > 0 && (
-        <section>
+        <section className="pt-6 pb-2">
           <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-clay)] uppercase mb-3">Follow up ({overdueWaiting.length})</p>
-          <div className="border border-[var(--svaas-sand)]/30 bg-[var(--svaas-cream)] rounded-xl divide-y divide-[var(--svaas-sand)]/20">
+          <div className="divide-y divide-[var(--svaas-sand)]/20">
             {overdueWaiting.map((t: any) => {
               const daysOver = getDaysOverdueWaiting(t);
               return (
-                <div key={t.id} className="px-5 py-3.5 flex items-center justify-between gap-3">
+                <div key={t.id} className="py-3 flex items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-medium text-[var(--svaas-brown-dark)]">{t.title}</p>
-                    <p className="text-[12px] text-[var(--svaas-clay)] mt-0.5">{t.waitingOnPerson} · {daysOver}d late</p>
+                    <span className="text-[14px] font-medium text-[var(--svaas-brown-dark)]">{t.title}</span>
+                    <span className="text-[12px] text-[var(--svaas-clay)] ml-2">{t.waitingOnPerson} · {daysOver}d late</span>
                   </div>
-                  <button onClick={() => handleDone(t)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium shrink-0">Received</button>
+                  <button onClick={() => handleDone(t)} className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium shrink-0">Received</button>
                 </div>
               );
             })}
@@ -248,44 +251,39 @@ export default function TodayPage() {
         </section>
       )}
 
-      {/* ═══════════════════════════════════════════════════════
-          FOCUS NOW — Max 3, large cards, most visual weight
-          ═══════════════════════════════════════════════════════ */}
+      {/* FOCUS NOW - Large treatment, max 3. Editorial blocks, not cards. */}
       {focusNow.length > 0 && (
-        <section>
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-dark)] uppercase mb-4">Focus now</p>
-          <div className="space-y-4">
+        <section className="pt-8">
+          <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-dark)] uppercase mb-5">Focus now</p>
+          <div className="space-y-0 divide-y divide-[var(--svaas-sand)]/30">
             {focusNow.map((task: any) => {
               const isCommitted = task.status === 'committed_today';
               return (
-                <div key={task.id} className={`border ${isCommitted ? 'border-[var(--svaas-brown)]/20' : 'border-[var(--svaas-sand)]/40'} bg-[var(--svaas-cream)] rounded-xl overflow-hidden`}>
-                  <div className="px-6 py-5 space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        {isCommitted && <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase mb-2">Committed</p>}
-                        <h3 className="text-[18px] font-medium text-[var(--svaas-brown-dark)] leading-snug font-[family-name:var(--font-serif)]">{task.title}</h3>
+                <div key={task.id} className="py-6 first:pt-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      {isCommitted && <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase mb-1.5">Committed</p>}
+                      <h3 className="text-[18px] font-medium text-[var(--svaas-brown-dark)] leading-snug font-[family-name:var(--font-serif)]">{task.title}</h3>
+                      <div className="mt-2 space-y-0.5 text-[13px]">
+                        <p className="text-[var(--svaas-brown)]"><span className="text-[var(--svaas-brown-light)]">Why:</span> {getWhy(task)}</p>
+                        <p className="text-[var(--svaas-clay)]"><span className="text-[var(--svaas-brown-light)]">If ignored:</span> {getConsequence(task)}</p>
                       </div>
-                      <KebabMenu actions={getKebabActions(task)} />
                     </div>
-
-                    <div className="space-y-1 text-[13px]">
-                      <p className="text-[var(--svaas-brown)]"><span className="text-[var(--svaas-brown-light)]">Why:</span> {getWhy(task)}</p>
-                      <p className="text-[var(--svaas-clay)]"><span className="text-[var(--svaas-brown-light)]">If ignored:</span> {getConsequence(task)}</p>
-                    </div>
-
-                    <div className="flex items-center gap-3 pt-2">
-                      {isCommitted ? (
-                        <button onClick={() => handleDone(task)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Done</button>
-                      ) : (
-                        <>
-                          <button onClick={() => commitTask(task.id)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Commit</button>
-                          <button onClick={() => handleDone(task)} className="text-[13px] text-[var(--svaas-brown-light)]">Done</button>
-                        </>
-                      )}
-                    </div>
-
-                    {renderInlineForms(task.id)}
+                    <KebabMenu actions={getKebabActions(task)} />
                   </div>
+
+                  <div className="flex items-center gap-3 mt-4">
+                    {isCommitted ? (
+                      <button onClick={() => handleDone(task)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Done</button>
+                    ) : (
+                      <>
+                        <button onClick={() => commitTask(task.id)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Commit</button>
+                        <button onClick={() => handleDone(task)} className="text-[13px] text-[var(--svaas-brown-light)]">Done</button>
+                      </>
+                    )}
+                  </div>
+
+                  {renderInlineForms(task.id)}
                 </div>
               );
             })}
@@ -293,23 +291,20 @@ export default function TodayPage() {
         </section>
       )}
 
-      {/* ═══════════════════════════════════════════════════════
-          UP NEXT — Compact rows, less visual emphasis
-          ═══════════════════════════════════════════════════════ */}
+      {/* UP NEXT - Compact rows, minimal. No cards. */}
       {upNext.length > 0 && (
-        <section>
-          <hr className="border-[var(--svaas-sand)]/30 mb-6" />
+        <section className="pt-8">
           <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-light)] uppercase mb-3">Up next</p>
-          <div className="border border-[var(--svaas-sand)]/30 bg-[var(--svaas-cream)] rounded-xl divide-y divide-[var(--svaas-sand)]/20">
+          <div className="divide-y divide-[var(--svaas-sand)]/20">
             {upNext.map((task: any) => (
-              <div key={task.id} className="px-5 py-3.5">
+              <div key={task.id} className="py-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-medium text-[var(--svaas-brown-dark)] truncate">{task.title}</p>
                     <p className="text-[12px] text-[var(--svaas-brown-light)] mt-0.5">{task.priority} · {task.department}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => commitTask(task.id)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Commit</button>
+                    <button onClick={() => commitTask(task.id)} className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[12px] rounded-lg font-medium">Commit</button>
                     <KebabMenu actions={getKebabActions(task)} />
                   </div>
                 </div>
@@ -320,11 +315,9 @@ export default function TodayPage() {
         </section>
       )}
 
-      {/* ═══════════════════════════════════════════════════════
-          EVERYTHING ELSE — Hidden behind "View All"
-          ═══════════════════════════════════════════════════════ */}
+      {/* EVERYTHING ELSE - Collapsed by default */}
       {everythingElse.length > 0 && (
-        <section>
+        <section className="pt-6">
           {!showEverythingElse ? (
             <button
               onClick={() => setShowEverythingElse(true)}
@@ -338,14 +331,14 @@ export default function TodayPage() {
                 <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-light)] uppercase">Everything else</p>
                 <button onClick={() => setShowEverythingElse(false)} className="text-[13px] text-[var(--svaas-brown-light)]">Collapse</button>
               </div>
-              <div className="border border-[var(--svaas-sand)]/30 bg-[var(--svaas-cream)] rounded-xl divide-y divide-[var(--svaas-sand)]/20">
+              <div className="divide-y divide-[var(--svaas-sand)]/20">
                 {everythingElse.map((task: any) => (
-                  <div key={task.id} className="px-5 py-3 flex items-center justify-between gap-3">
+                  <div key={task.id} className="py-2.5 flex items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <p className="text-[14px] text-[var(--svaas-brown-dark)] truncate">{task.title}</p>
                       <p className="text-[11px] text-[var(--svaas-brown-light)] mt-0.5">{task.department}</p>
                     </div>
-                    <button onClick={() => commitTask(task.id)} className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[12px] rounded-lg shrink-0">Commit</button>
+                    <button onClick={() => commitTask(task.id)} className="px-3 py-1.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[12px] rounded-lg shrink-0">Commit</button>
                   </div>
                 ))}
               </div>
@@ -354,10 +347,10 @@ export default function TodayPage() {
         </section>
       )}
 
-      {/* ADD TASK */}
-      <section>
+      {/* ADD TASK - minimal */}
+      <section className="pt-6 pb-2">
         {showAddTask ? (
-          <div className="border border-[var(--svaas-sand)]/40 bg-[var(--svaas-cream)] rounded-xl p-5 space-y-3">
+          <div className="border-t border-[var(--svaas-sand)]/30 pt-4 space-y-3">
             <input
               value={newTaskTitle}
               onChange={e => setNewTaskTitle(e.target.value)}
@@ -374,7 +367,7 @@ export default function TodayPage() {
         ) : (
           <button
             onClick={() => setShowAddTask(true)}
-            className="w-full py-3 border border-dashed border-[var(--svaas-sand)]/50 rounded-xl text-[13px] text-[var(--svaas-brown-light)] hover:border-[var(--svaas-brown)]/30 hover:text-[var(--svaas-brown)] transition-colors"
+            className="text-[13px] text-[var(--svaas-brown-light)] hover:text-[var(--svaas-brown)] transition-colors"
           >
             + Add task
           </button>

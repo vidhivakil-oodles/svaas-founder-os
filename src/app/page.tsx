@@ -92,9 +92,9 @@ export default function HomePage() {
   const hasContent = commitment || suggestedTask || biggestBlocker || topDecision || overdueWaiting.length > 0;
 
   return (
-    <div className="space-y-10">
-      {/* Header — minimal, editorial */}
-      <header className="pt-3 flex items-baseline justify-between">
+    <div className="space-y-0">
+      {/* Header - thin editorial masthead */}
+      <header className="pt-3 pb-8 flex items-baseline justify-between border-b border-[var(--svaas-sand)]/30">
         <p className="text-[13px] text-[var(--svaas-brown-light)] tracking-wide">Day {dayNumber} · Week {weekNumber}</p>
         <p className="text-[13px] text-[var(--svaas-brown-light)]">{daysToLaunch}d to launch</p>
       </header>
@@ -102,26 +102,23 @@ export default function HomePage() {
       {/* Empty state */}
       {!hasContent && (
         <div className="py-16 text-center">
-          <p className="text-[22px] text-[var(--svaas-brown)] font-medium">All clear.</p>
+          <p className="text-[22px] text-[var(--svaas-brown)] font-medium font-[family-name:var(--font-serif)]">All clear.</p>
           <p className="text-[var(--svaas-brown-light)] text-[15px] mt-3">Your venture is on track.</p>
           <Link href="/today" className="inline-block mt-6 px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-sm rounded-lg font-medium">Open Today</Link>
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════════════════
-          PRIMARY PANEL — Today's Commitment
-          50-60% of visual attention. Editorial typography.
-          ═══════════════════════════════════════════════════════ */}
+      {/* PRIMARY - Today's Commitment / Hero editorial block */}
       {(commitment || suggestedTask) && (
-        <section className="py-2">
-          <p className="text-[12px] font-semibold tracking-[0.15em] text-[var(--svaas-olive)] uppercase mb-4">Your focus today</p>
+        <section className="pt-10 pb-10">
+          <p className="text-[12px] font-semibold tracking-[0.15em] text-[var(--svaas-olive)] uppercase mb-5">Your focus today</p>
           <h1 className="text-[32px] font-semibold text-[var(--svaas-brown-dark)] leading-[1.15] tracking-[-0.01em] font-[family-name:var(--font-serif)]">
             {commitment?.title || suggestedTask?.title}
           </h1>
-          <div className="mt-5 space-y-1.5 text-[15px] leading-relaxed">
+          <div className="mt-5 space-y-1 text-[15px] leading-relaxed">
             <p className="text-[var(--svaas-brown)]">{getWhy((commitment || suggestedTask)!, state)}</p>
-            <p className="text-[var(--svaas-olive)]">If done → {getIfDone((commitment || suggestedTask)!, state)}</p>
-            <p className="text-[var(--svaas-clay)]">If ignored → {getConsequence((commitment || suggestedTask)!)}</p>
+            <p className="text-[var(--svaas-olive)]">If done: {getIfDone((commitment || suggestedTask)!, state)}</p>
+            <p className="text-[var(--svaas-clay)]">If ignored: {getConsequence((commitment || suggestedTask)!)}</p>
           </div>
           <div className="mt-7">
             {commitment ? (
@@ -136,84 +133,66 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Divider */}
-      {(commitment || suggestedTask) && (biggestBlocker || topDecision) && (
-        <hr className="border-[var(--svaas-sand)]/40" />
-      )}
-
-      {/* ═══════════════════════════════════════════════════════
-          SECONDARY PANELS — Horizontal strip on large screens
-          ═══════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Stuck — left clay spine */}
-        {biggestBlocker && (
-          <section className="flex gap-0 rounded-xl overflow-hidden border border-[var(--svaas-sand)]/30">
-            <div className="w-1.5 bg-[var(--svaas-clay)] shrink-0" />
-            <div className="flex-1 px-5 py-4 bg-[var(--svaas-cream)]">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-clay)] uppercase">Needs attention</p>
-                  <h3 className="text-[18px] font-medium text-[var(--svaas-brown-dark)] mt-1.5 leading-snug font-[family-name:var(--font-serif)]">{biggestBlocker.title}</h3>
-                  <p className="text-[13px] text-[var(--svaas-brown)] mt-2">
-                    {biggestBlocker.blockerType === 'blocked'
-                      ? biggestBlocker.blockedReason
-                      : `${dayNumber - (biggestBlocker.dayRangeEnd || 0)}d overdue`}
-                  </p>
-                </div>
-                <Link href="/warroom" className="text-[12px] text-[var(--svaas-clay)] font-medium shrink-0 ml-4">
-                  {blockers.length} →
-                </Link>
+      {/* SECONDARY BRIEFING STRIPS - No cards. Thin ruled sections with left spine. */}
+      {(biggestBlocker || topDecision || overdueWaiting.length > 0) && (
+        <div className="border-t border-[var(--svaas-sand)]/40 pt-8 space-y-0">
+          {/* Blocker strip */}
+          {biggestBlocker && (
+            <div className="flex gap-4 py-5 border-b border-[var(--svaas-sand)]/25">
+              <div className="w-0.5 self-stretch bg-[var(--svaas-clay)] shrink-0 rounded-full" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-clay)] uppercase">Needs attention</p>
+                <p className="text-[16px] font-medium text-[var(--svaas-brown-dark)] mt-1.5 leading-snug font-[family-name:var(--font-serif)]">{biggestBlocker.title}</p>
+                <p className="text-[13px] text-[var(--svaas-brown)] mt-1">
+                  {biggestBlocker.blockerType === 'blocked'
+                    ? biggestBlocker.blockedReason
+                    : `${dayNumber - (biggestBlocker.dayRangeEnd || 0)}d overdue`}
+                </p>
               </div>
+              <Link href="/warroom" className="text-[12px] text-[var(--svaas-clay)] font-medium self-start mt-1 shrink-0">
+                {blockers.length} total →
+              </Link>
             </div>
-          </section>
-        )}
+          )}
 
-        {/* Decision — left olive spine */}
-        {topDecision && (
-          <section className="flex gap-0 rounded-xl overflow-hidden border border-[var(--svaas-sand)]/30">
-            <div className="w-1.5 bg-[var(--svaas-olive)] shrink-0" />
-            <div className="flex-1 px-5 py-4 bg-[var(--svaas-cream)]">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Requires your decision</p>
-                  <h3 className="text-[18px] font-medium text-[var(--svaas-brown-dark)] mt-1.5 leading-snug font-[family-name:var(--font-serif)]">{topDecision.title}</h3>
-                  <p className="text-[13px] text-[var(--svaas-brown)] mt-2">{topDecision.context || 'Unlocks dependent work.'}</p>
+          {/* Decision strip */}
+          {topDecision && (
+            <div className="flex gap-4 py-5 border-b border-[var(--svaas-sand)]/25">
+              <div className="w-0.5 self-stretch bg-[var(--svaas-olive)] shrink-0 rounded-full" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Requires your decision</p>
+                <p className="text-[16px] font-medium text-[var(--svaas-brown-dark)] mt-1.5 leading-snug font-[family-name:var(--font-serif)]">{topDecision.title}</p>
+                <p className="text-[13px] text-[var(--svaas-brown-light)] mt-1">Drishti recommends: {topDecision.defaultOption}</p>
+                <div className="mt-3">
+                  <button onClick={() => acceptDecisionDefault(topDecision.id)} className="px-5 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Accept</button>
                 </div>
               </div>
-              <div className="mt-3 space-y-1.5">
-                <p className="text-[12px] text-[var(--svaas-brown-light)]">Drishti recommends: {topDecision.defaultOption}</p>
-                <button onClick={() => acceptDecisionDefault(topDecision.id)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Accept</button>
-              </div>
             </div>
-          </section>
-        )}
+          )}
 
-        {/* Waiting — left sand/amber spine */}
-        {overdueWaiting.length > 0 && (
-          <section className="flex gap-0 rounded-xl overflow-hidden border border-[var(--svaas-sand)]/30">
-            <div className="w-1.5 bg-[var(--svaas-sand)] shrink-0" />
-            <div className="flex-1 px-5 py-4 bg-[var(--svaas-cream)]">
-              <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-light)] uppercase">Waiting — overdue</p>
-              <div className="mt-3 space-y-3">
+          {/* Waiting strip */}
+          {overdueWaiting.length > 0 && (
+            <div className="flex gap-4 py-5 border-b border-[var(--svaas-sand)]/25">
+              <div className="w-0.5 self-stretch bg-[var(--svaas-sand)] shrink-0 rounded-full" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-light)] uppercase mb-3">Waiting - overdue</p>
                 {overdueWaiting.slice(0, 3).map((t: any) => (
-                  <div key={t.id} className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[14px] font-medium text-[var(--svaas-brown-dark)]">{t.title}</p>
-                      <p className="text-[12px] text-[var(--svaas-brown-light)]">{t.waitingOnPerson} · {t.daysLate}d late</p>
+                  <div key={t.id} className="flex items-center justify-between py-1.5">
+                    <div className="min-w-0">
+                      <span className="text-[14px] text-[var(--svaas-brown-dark)]">{t.title}</span>
+                      <span className="text-[12px] text-[var(--svaas-brown-light)] ml-2">{t.waitingOnPerson} · {t.daysLate}d late</span>
                     </div>
-                    <button onClick={() => markTaskDone(t.id)} className="px-3 py-1.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[12px] rounded-lg shrink-0">Received</button>
+                    <button onClick={() => markTaskDone(t.id)} className="px-3 py-1.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[12px] rounded-lg shrink-0 ml-3">Received</button>
                   </div>
                 ))}
               </div>
             </div>
-          </section>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
-      {/* ═══════════════════════════════════════════════════════
-          FOOTER — This Week summary
-          ═══════════════════════════════════════════════════════ */}
-      <footer className="flex items-center justify-between text-[13px] text-[var(--svaas-brown-light)] pt-2">
+      {/* FOOTER - This week pulse */}
+      <footer className="flex items-center justify-between text-[13px] text-[var(--svaas-brown-light)] pt-8 pb-2">
         <p>
           This week:
           {completedThisWeek > 0 && <> <span className="font-semibold">{completedThisWeek}</span> done</>}
@@ -222,7 +201,7 @@ export default function HomePage() {
           {waitingOn.length > 0 && <> · <span className="font-semibold">{waitingOn.length}</span> waiting</>}
           {completedThisWeek === 0 && overdueCount === 0 && blockedCount === 0 && waitingOn.length === 0 && ' No activity yet.'}
         </p>
-        <Link href="/review">Review →</Link>
+        <Link href="/review" className="font-medium text-[var(--svaas-brown)]">Review →</Link>
       </footer>
 
       <AppNav />
