@@ -180,8 +180,9 @@ export default function HomePage() {
                   <p className="text-[13px] text-[var(--svaas-brown)] mt-2">{topDecision.context || 'Unlocks dependent work.'}</p>
                 </div>
               </div>
-              <div className="mt-3">
-                <button onClick={() => acceptDecisionDefault(topDecision.id)} className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Accept: {topDecision.defaultOption}</button>
+              <div className="mt-3 space-y-1.5">
+                <p className="text-[12px] text-[var(--svaas-brown-light)]">Recommended: {topDecision.defaultOption}</p>
+                <button onClick={() => acceptDecisionDefault(topDecision.id)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Accept</button>
               </div>
             </div>
           </section>
