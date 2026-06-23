@@ -58,7 +58,7 @@ export default function DecisionsPage() {
     <div className="space-y-8 max-w-2xl mx-auto">
       <header className="pt-2">
         <BackToHome />
-        <h1 className="text-[24px] font-medium text-[var(--svaas-brown-dark)] mt-3">Decisions</h1>
+        <h1 className="text-[24px] font-medium text-[var(--svaas-brown-dark)] mt-3 font-[family-name:var(--font-serif)]">Decisions</h1>
         <p className="text-[13px] text-[var(--svaas-brown-light)] mt-1">{pending.length} pending · {decided.length} decided</p>
       </header>
 
@@ -72,7 +72,7 @@ export default function DecisionsPage() {
               <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Decision of the day</p>
               <KebabMenu actions={getDecisionKebab(topDecision)} />
             </div>
-            <h2 className="text-[24px] font-medium text-[var(--svaas-brown-dark)] leading-snug">{topDecision.title}</h2>
+            <h2 className="text-[24px] font-medium text-[var(--svaas-brown-dark)] leading-snug font-[family-name:var(--font-serif)]">{topDecision.title}</h2>
             {topDecision.context && <p className="text-[14px] text-[var(--svaas-brown)] leading-relaxed">{topDecision.context}</p>}
 
             <div className="border-t border-[var(--svaas-sand)]/30 pt-4 space-y-2">

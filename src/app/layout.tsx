@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Lora } from "next/font/google";
 import "./globals.css";
 import { StateProvider } from "@/lib/state-provider";
 import { ToastProvider } from "@/lib/toast-provider";
 import { DailyLifecycleManager } from "@/lib/daily-lifecycle";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const lora = Lora({ subsets: ["latin"], variable: "--font-serif" });
 
 export const metadata: Metadata = {
   title: "SVAAS",
@@ -19,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-[var(--svaas-ivory)] text-[var(--svaas-brown-dark)] min-h-screen`}>
+      <body className={`${inter.variable} ${lora.variable} font-[family-name:var(--font-sans)] bg-[var(--svaas-ivory)] text-[var(--svaas-brown-dark)] min-h-screen`}>
         <ToastProvider>
           <StateProvider>
             <DailyLifecycleManager />

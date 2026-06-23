@@ -95,7 +95,7 @@ export default function WeeklyReviewPage() {
         <BackToHome />
         <div className="mt-4">
           <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Weekly Review</p>
-          <h1 className="text-[32px] font-semibold text-[var(--svaas-brown-dark)] mt-2 leading-tight">Week {data.weekNumber}</h1>
+          <h1 className="text-[32px] font-semibold text-[var(--svaas-brown-dark)] mt-2 leading-tight font-[family-name:var(--font-serif)]">Week {data.weekNumber}</h1>
           <p className="text-[14px] text-[var(--svaas-brown-light)] mt-1">{data.dayRange} · {totalMinutes} minutes</p>
         </div>
       </header>

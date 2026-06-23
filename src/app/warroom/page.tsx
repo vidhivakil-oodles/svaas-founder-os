@@ -48,7 +48,7 @@ export default function WarRoomPage() {
         <BackToHome />
         <div className="mt-4">
           <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-clay)] uppercase">War Room</p>
-          <h1 className="text-[24px] font-medium text-[var(--svaas-brown-dark)] mt-1">{totalFires} item{totalFires !== 1 ? 's' : ''} need attention</h1>
+          <h1 className="text-[24px] font-medium text-[var(--svaas-brown-dark)] mt-1 font-[family-name:var(--font-serif)]">{totalFires} item{totalFires !== 1 ? 's' : ''} need attention</h1>
         </div>
       </header>
 

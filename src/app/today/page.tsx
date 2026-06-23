@@ -191,7 +191,7 @@ export default function TodayPage() {
       <header className="pt-3 flex items-baseline justify-between">
         <div>
           <p className="text-[13px] text-[var(--svaas-brown-light)] tracking-wide">Day {dayNumber} · Week {weekNumber}</p>
-          <h1 className="text-[24px] font-medium text-[var(--svaas-brown-dark)] mt-1">Good morning, Vidhi.</h1>
+          <h1 className="text-[24px] font-medium text-[var(--svaas-brown-dark)] mt-1 font-[family-name:var(--font-serif)]">Good morning, Vidhi.</h1>
         </div>
         <p className="text-[13px] text-[var(--svaas-brown-light)]">{daysToLaunch}d to launch</p>
       </header>
@@ -262,7 +262,7 @@ export default function TodayPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
                         {isCommitted && <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase mb-2">Committed</p>}
-                        <h3 className="text-[18px] font-medium text-[var(--svaas-brown-dark)] leading-snug">{task.title}</h3>
+                        <h3 className="text-[18px] font-medium text-[var(--svaas-brown-dark)] leading-snug font-[family-name:var(--font-serif)]">{task.title}</h3>
                       </div>
                       <KebabMenu actions={getKebabActions(task)} />
                     </div>
@@ -297,6 +297,7 @@ export default function TodayPage() {
           ═══════════════════════════════════════════════════════ */}
       {upNext.length > 0 && (
         <section>
+          <hr className="border-[var(--svaas-sand)]/30 mb-6" />
           <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-light)] uppercase mb-3">Up next</p>
           <div className="border border-[var(--svaas-sand)]/30 bg-[var(--svaas-cream)] rounded-xl divide-y divide-[var(--svaas-sand)]/20">
             {upNext.map((task: any) => (

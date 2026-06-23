@@ -114,8 +114,8 @@ export default function HomePage() {
           ═══════════════════════════════════════════════════════ */}
       {(commitment || suggestedTask) && (
         <section className="py-2">
-          <p className="text-[12px] font-semibold tracking-[0.15em] text-[var(--svaas-olive)] uppercase mb-4">Today&apos;s commitment</p>
-          <h1 className="text-[32px] font-semibold text-[var(--svaas-brown-dark)] leading-[1.15] tracking-[-0.01em]">
+          <p className="text-[12px] font-semibold tracking-[0.15em] text-[var(--svaas-olive)] uppercase mb-4">Your focus today</p>
+          <h1 className="text-[32px] font-semibold text-[var(--svaas-brown-dark)] leading-[1.15] tracking-[-0.01em] font-[family-name:var(--font-serif)]">
             {commitment?.title || suggestedTask?.title}
           </h1>
           <div className="mt-5 space-y-1.5 text-[15px] leading-relaxed">
@@ -142,9 +142,9 @@ export default function HomePage() {
       )}
 
       {/* ═══════════════════════════════════════════════════════
-          SECONDARY PANELS — Different structure, left spine
+          SECONDARY PANELS — Horizontal strip on large screens
           ═══════════════════════════════════════════════════════ */}
-      <div className="space-y-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Stuck — left clay spine */}
         {biggestBlocker && (
           <section className="flex gap-0 rounded-xl overflow-hidden border border-[var(--svaas-sand)]/30">
@@ -152,8 +152,8 @@ export default function HomePage() {
             <div className="flex-1 px-5 py-4 bg-[var(--svaas-cream)]">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-clay)] uppercase">Stuck</p>
-                  <h3 className="text-[18px] font-medium text-[var(--svaas-brown-dark)] mt-1.5 leading-snug">{biggestBlocker.title}</h3>
+                  <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-clay)] uppercase">Needs attention</p>
+                  <h3 className="text-[18px] font-medium text-[var(--svaas-brown-dark)] mt-1.5 leading-snug font-[family-name:var(--font-serif)]">{biggestBlocker.title}</h3>
                   <p className="text-[13px] text-[var(--svaas-brown)] mt-2">
                     {biggestBlocker.blockerType === 'blocked'
                       ? biggestBlocker.blockedReason
@@ -175,8 +175,8 @@ export default function HomePage() {
             <div className="flex-1 px-5 py-4 bg-[var(--svaas-cream)]">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Decide</p>
-                  <h3 className="text-[18px] font-medium text-[var(--svaas-brown-dark)] mt-1.5 leading-snug">{topDecision.title}</h3>
+                  <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Requires your decision</p>
+                  <h3 className="text-[18px] font-medium text-[var(--svaas-brown-dark)] mt-1.5 leading-snug font-[family-name:var(--font-serif)]">{topDecision.title}</h3>
                   <p className="text-[13px] text-[var(--svaas-brown)] mt-2">{topDecision.context || 'Unlocks dependent work.'}</p>
                 </div>
               </div>

@@ -126,7 +126,7 @@ export default function StreamPage() {
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
               {statusLabel && <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase mb-1.5">{statusLabel}</p>}
-              <h3 className="text-[16px] font-medium text-[var(--svaas-brown-dark)] leading-snug">{task.title}</h3>
+              <h3 className="text-[16px] font-medium text-[var(--svaas-brown-dark)] leading-snug font-[family-name:var(--font-serif)]">{task.title}</h3>
             </div>
             <KebabMenu actions={kebabActions} />
           </div>
@@ -185,7 +185,7 @@ export default function StreamPage() {
         <BackToHome />
         <div className="mt-4">
           <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Stream</p>
-          <h1 className="text-[24px] font-medium text-[var(--svaas-brown-dark)] mt-1">{stream.name}</h1>
+          <h1 className="text-[24px] font-medium text-[var(--svaas-brown-dark)] mt-1 font-[family-name:var(--font-serif)]">{stream.name}</h1>
         </div>
       </header>
 
