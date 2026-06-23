@@ -181,7 +181,7 @@ export default function HomePage() {
                 </div>
               </div>
               <div className="mt-3 space-y-1.5">
-                <p className="text-[12px] text-[var(--svaas-brown-light)]">Recommended: {topDecision.defaultOption}</p>
+                <p className="text-[12px] text-[var(--svaas-brown-light)]">Drishti recommends: {topDecision.defaultOption}</p>
                 <button onClick={() => acceptDecisionDefault(topDecision.id)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Accept</button>
               </div>
             </div>

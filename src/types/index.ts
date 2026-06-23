@@ -1,6 +1,9 @@
 // ============================================================
-// SVAAS Founder OS — Core Types
+// Tattva — Core Types
 // ============================================================
+
+// Future: User roles for multi-user support
+// type UserRole = 'founder' | 'cofounder' | 'department_head' | 'operations_lead' | 'advisor';
 
 export type StreamStatus = 'green' | 'yellow' | 'red' | 'grey';
 export type TaskStatus = 'not_started' | 'committed_today' | 'in_progress' | 'waiting_on' | 'blocked' | 'deferred' | 'done' | 'cancelled';

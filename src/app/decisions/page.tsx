@@ -88,7 +88,7 @@ export default function DecisionsPage() {
 
             {/* Recommendation + verb-only buttons */}
             <div className="border-t border-[var(--svaas-sand)]/30 pt-4">
-              <p className="text-[13px] text-[var(--svaas-brown-light)] mb-1">Recommended</p>
+              <p className="text-[13px] text-[var(--svaas-brown-light)] mb-1">Drishti recommends</p>
               <p className="text-[16px] font-medium text-[var(--svaas-brown-dark)] mb-4">{topDecision.defaultOption}</p>
               <div className="flex items-center gap-3">
                 <button
@@ -129,7 +129,7 @@ export default function DecisionsPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-[16px] font-medium text-[var(--svaas-brown-dark)] truncate">{d.title}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[13px] text-[var(--svaas-brown-light)]">Recommended: {d.defaultOption}</span>
+                      <span className="text-[13px] text-[var(--svaas-brown-light)]">Drishti recommends: {d.defaultOption}</span>
                       {deadlineInfo && (
                         <span className={`text-[11px] font-medium ${deadlineInfo.urgent ? 'text-[var(--svaas-clay)]' : 'text-[var(--svaas-brown-light)]'}`}>
                           · {deadlineInfo.text}

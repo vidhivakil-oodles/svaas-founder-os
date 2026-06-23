@@ -192,6 +192,7 @@ export default function TodayPage() {
         <div>
           <p className="text-[13px] text-[var(--svaas-brown-light)] tracking-wide">Day {dayNumber} · Week {weekNumber}</p>
           <h1 className="text-[24px] font-medium text-[var(--svaas-brown-dark)] mt-1 font-[family-name:var(--font-serif)]">Good morning, Vidhi.</h1>
+          <p className="text-[12px] text-[var(--svaas-brown-light)] mt-1">Drishti briefing</p>
         </div>
         <p className="text-[13px] text-[var(--svaas-brown-light)]">{daysToLaunch}d to launch</p>
       </header>

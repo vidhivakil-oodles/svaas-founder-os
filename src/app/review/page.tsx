@@ -96,7 +96,7 @@ export default function WeeklyReviewPage() {
         <div className="mt-4">
           <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Weekly Review</p>
           <h1 className="text-[32px] font-semibold text-[var(--svaas-brown-dark)] mt-2 leading-tight font-[family-name:var(--font-serif)]">Week {data.weekNumber}</h1>
-          <p className="text-[14px] text-[var(--svaas-brown-light)] mt-1">{data.dayRange} · {totalMinutes} minutes</p>
+          <p className="text-[14px] text-[var(--svaas-brown-light)] mt-1">Prepared by Drishti · {data.dayRange} · {totalMinutes} minutes</p>
         </div>
       </header>
 
@@ -213,7 +213,7 @@ export default function WeeklyReviewPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-[14px] font-medium text-[var(--svaas-brown-dark)]">{d.title}</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[12px] text-[var(--svaas-brown-light)]">Recommended: {d.defaultOption}</span>
+                          <span className="text-[12px] text-[var(--svaas-brown-light)]">Drishti recommends: {d.defaultOption}</span>
                           {daysOverdue > 0 && <span className="text-[11px] text-[var(--svaas-clay)] font-medium">{daysOverdue}d overdue</span>}
                         </div>
                       </div>

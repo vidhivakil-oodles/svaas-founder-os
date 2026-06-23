@@ -145,7 +145,7 @@ export default function AdminPage() {
 
       {/* Reset Button */}
       <div className="border border-red-900/30 bg-red-950/10 rounded-lg p-4 space-y-3">
-        <h3 className="text-sm font-medium text-red-400">Reset Founder OS Data</h3>
+        <h3 className="text-sm font-medium text-red-400">Reset Tattva Data</h3>
         <p className="text-xs text-zinc-500">Clears localStorage and reloads all data from source files (358 tasks, corrected dates). Use this if you see stale/impossible dates.</p>
         <button
           onClick={resetData}

@@ -9,8 +9,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const lora = Lora({ subsets: ["latin"], variable: "--font-serif" });
 
 export const metadata: Metadata = {
-  title: "SVAAS",
-  description: "Founder OS — Your Chief of Staff",
+  title: "Tattva",
+  description: "Understand reality clearly.",
 };
 
 export default function RootLayout({

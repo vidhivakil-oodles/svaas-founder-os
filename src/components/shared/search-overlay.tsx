@@ -113,7 +113,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
             ref={inputRef}
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search tasks, decisions, notes..."
+            placeholder="Search Tattva..."
             className="flex-1 text-sm text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] bg-transparent outline-none"
           />
           <button onClick={onClose} className="text-[var(--svaas-brown-light)] hover:text-[var(--svaas-brown)] text-lg leading-none">×</button>
