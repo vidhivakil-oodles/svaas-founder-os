@@ -24,7 +24,7 @@ export default function RootLayout({
         <ToastProvider>
           <StateProvider>
             <DailyLifecycleManager />
-            <main className="max-w-2xl mx-auto px-5 py-6">
+            <main className="max-w-3xl mx-auto px-5 py-6">
               {children}
             </main>
           </StateProvider>

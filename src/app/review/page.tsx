@@ -106,25 +106,30 @@ export default function WeeklyReviewPage() {
         </div>
       </header>
 
-      {/* Section Navigation - subtle, editorial */}
-      <nav className="py-4 border-b border-[var(--svaas-sand)]/20 overflow-x-auto">
-        <div className="flex gap-4">
+      {/* Section Navigation - editorial table of contents */}
+      <nav className="py-6 border-b border-[var(--svaas-sand)]/20">
+        <p className="text-[11px] font-semibold tracking-[0.14em] text-[var(--svaas-brown-light)] uppercase mb-4">Contents</p>
+        <ol className="space-y-1.5">
           {SECTIONS.map((section, i) => (
-            <button
-              key={section.id}
-              onClick={() => setCurrentSection(i)}
-              className={`text-[13px] whitespace-nowrap transition-colors ${
-                i === currentSection
-                  ? 'text-[var(--svaas-brown-dark)] font-medium'
-                  : i < currentSection
-                  ? 'text-[var(--svaas-olive)]'
-                  : 'text-[var(--svaas-brown-light)]'
-              }`}
-            >
-              {section.title}
-            </button>
+            <li key={section.id}>
+              <button
+                onClick={() => setCurrentSection(i)}
+                className={`flex items-baseline gap-3 w-full text-left py-1 transition-colors ${
+                  i === currentSection
+                    ? 'text-[var(--svaas-brown-dark)]'
+                    : i < currentSection
+                    ? 'text-[var(--svaas-olive)]'
+                    : 'text-[var(--svaas-brown-light)]'
+                }`}
+              >
+                <span className={`text-[12px] tabular-nums w-4 shrink-0 ${i === currentSection ? 'font-semibold' : ''}`}>{i + 1}</span>
+                <span className={`text-[14px] ${i === currentSection ? 'font-medium' : ''}`}>{section.title}</span>
+                {i < currentSection && <span className="text-[12px] text-[var(--svaas-olive)] ml-auto">&#10003;</span>}
+                {i === currentSection && <span className="text-[11px] text-[var(--svaas-brown-light)] ml-auto uppercase tracking-wide">reading</span>}
+              </button>
+            </li>
           ))}
-        </div>
+        </ol>
       </nav>
 
       {/* Content - Narrative letter sections */}
@@ -134,6 +139,36 @@ export default function WeeklyReviewPage() {
         {currentSection === 0 && (
           <div className="space-y-6">
             <h2 className="text-[24px] font-[family-name:var(--font-serif)] text-[var(--svaas-brown-dark)]">What happened this week</h2>
+
+            {/* Outcome Summary */}
+            {(() => {
+              const blockersRemoved = state.tasks.filter((t: any) => t.status === 'done' && t.completedAt && t.blockedReason).length;
+              const decisionsMade = state.decisions.filter((d: any) => d.status === 'decided').length;
+              const commitmentsCompleted = data.completedThisWeek.length;
+
+              const advancedStreams = state.streams
+                .filter((s: any) => state.tasks.some((t: any) => t.streamId === s.id && t.status === 'done' && t.completedAt))
+                .map((s: any) => s.name)
+                .slice(0, 3);
+
+              return (commitmentsCompleted > 0 || blockersRemoved > 0 || decisionsMade > 0) ? (
+                <div className="border-l-2 border-[var(--svaas-olive)] pl-5 py-2">
+                  <p className="text-[15px] text-[var(--svaas-brown-dark)] font-medium leading-relaxed">
+                    This week: {blockersRemoved > 0 && <>{blockersRemoved} blocker{blockersRemoved !== 1 ? 's' : ''} removed · </>}{decisionsMade > 0 && <>{decisionsMade} decision{decisionsMade !== 1 ? 's' : ''} made · </>}{commitmentsCompleted} commitment{commitmentsCompleted !== 1 ? 's' : ''} completed
+                  </p>
+                  {advancedStreams.length > 0 && (
+                    <p className="text-[14px] text-[var(--svaas-olive)] mt-2">
+                      Impact: {advancedStreams.join('. ')}{advancedStreams.length > 0 ? ' advanced.' : ''}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="border-l-2 border-[var(--svaas-sand)]/40 pl-5 py-2">
+                  <p className="text-[15px] text-[var(--svaas-brown-light)] leading-relaxed">No measurable progress yet this week.</p>
+                </div>
+              );
+            })()}
+
             <p className="text-[16px] text-[var(--svaas-brown)] leading-relaxed">
               {data.completedThisWeek.length > 0
                 ? `You completed ${data.completedThisWeek.length} action${data.completedThisWeek.length !== 1 ? 's' : ''} this week. Here is what moved forward.`

@@ -136,19 +136,28 @@ export default function HomePage() {
       {/* SECONDARY BRIEFING STRIPS */}
       {(biggestBlocker || topDecision || overdueWaiting.length > 0) && (
         <div className="border-t border-[var(--svaas-sand)]/40 pt-10 space-y-0">
-          {/* Needs Attention strip */}
+          {/* Needs Attention strip - Drishti intelligence */}
           {biggestBlocker && (
             <div className="flex gap-4 py-6 border-b border-[var(--svaas-sand)]/25">
               <div className="w-0.5 self-stretch bg-[var(--svaas-clay)] shrink-0 rounded-full" />
               <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-clay)] uppercase">Needs attention</p>
-                <p className="text-[20px] font-medium text-[var(--svaas-brown-dark)] mt-2 leading-snug font-[family-name:var(--font-serif)]">{biggestBlocker.title}</p>
-                <p className="text-[14px] text-[var(--svaas-brown)] mt-1.5">
-                  {biggestBlocker.blockerType === 'blocked'
-                    ? biggestBlocker.blockedReason
-                    : `${dayNumber - (biggestBlocker.dayRangeEnd || 0)}d overdue`}
+                <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-clay)] uppercase">Drishti sees</p>
+                <p className="text-[14px] text-[var(--svaas-brown)] mt-3 leading-relaxed">
+                  {blockedCount > 0 && <><span className="font-semibold text-[var(--svaas-brown-dark)]">{blockedCount}</span> blocked</>}
+                  {blockedCount > 0 && (state.decisions.filter((d: any) => d.status === 'pending').length > 0 || overdueCount > 0) && <> · </>}
+                  {state.decisions.filter((d: any) => d.status === 'pending').length > 0 && <><span className="font-semibold text-[var(--svaas-brown-dark)]">{state.decisions.filter((d: any) => d.status === 'pending').length}</span> decisions pending</>}
+                  {state.decisions.filter((d: any) => d.status === 'pending').length > 0 && overdueCount > 0 && <> · </>}
+                  {overdueCount > 0 && <><span className="font-semibold text-[var(--svaas-brown-dark)]">{overdueCount}</span> overdue</>}
                 </p>
-                <p className="text-[13px] text-[var(--svaas-olive)] mt-2">Drishti identifies {blockers.length} blocked item{blockers.length !== 1 ? 's' : ''}</p>
+                <div className="mt-4">
+                  <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Largest blocker</p>
+                  <p className="text-[20px] font-medium text-[var(--svaas-brown-dark)] mt-1.5 leading-snug font-[family-name:var(--font-serif)]">{biggestBlocker.title}</p>
+                  <p className="text-[14px] text-[var(--svaas-brown)] mt-1.5">
+                    {biggestBlocker.blockerType === 'blocked'
+                      ? biggestBlocker.blockedReason
+                      : `${dayNumber - (biggestBlocker.dayRangeEnd || 0)}d overdue`}
+                  </p>
+                </div>
               </div>
               <Link href="/warroom" className="text-[13px] text-[var(--svaas-clay)] font-medium self-start mt-1 shrink-0">
                 War Room →
