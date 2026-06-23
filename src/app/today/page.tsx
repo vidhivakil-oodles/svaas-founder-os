@@ -188,16 +188,14 @@ export default function TodayPage() {
   return (
     <div className="space-y-0">
       {/* Header - editorial masthead */}
-      <header className="pt-3 pb-6 flex items-baseline justify-between border-b border-[var(--svaas-sand)]/30">
-        <div>
-          <p className="text-[13px] text-[var(--svaas-brown-light)] tracking-wide">Day {dayNumber} · Week {weekNumber}</p>
-          <h1 className="text-[24px] font-medium text-[var(--svaas-brown-dark)] mt-1 font-[family-name:var(--font-serif)]">Good morning, Vidhi.</h1>
-          <p className="text-[12px] text-[var(--svaas-brown-light)] mt-0.5">Drishti briefing · {daysToLaunch}d to launch</p>
-        </div>
+      <header className="pt-4 pb-8 border-b border-[var(--svaas-sand)]/30">
+        <p className="text-[13px] text-[var(--svaas-brown-light)] tracking-wide">Day {dayNumber} · Week {weekNumber}</p>
+        <h1 className="text-[32px] font-medium text-[var(--svaas-brown-dark)] mt-2 font-[family-name:var(--font-serif)]">Good morning, Vidhi.</h1>
+        <p className="text-[13px] text-[var(--svaas-olive)] mt-1">Drishti briefing · Day {dayNumber} · {daysToLaunch}d to launch</p>
       </header>
 
-      {/* Quick Note - minimal inline */}
-      <div className="py-4 border-b border-[var(--svaas-sand)]/20">
+      {/* Quick Note */}
+      <div className="py-5 border-b border-[var(--svaas-sand)]/20">
         <div className="flex gap-2">
           <input
             value={quickNote}
@@ -212,16 +210,16 @@ export default function TodayPage() {
         </div>
       </div>
 
-      {/* Wins - editorial inline */}
+      {/* Wins */}
       {wins.length > 0 && (
-        <div className="py-4 border-b border-[var(--svaas-sand)]/20">
+        <div className="py-5 border-b border-[var(--svaas-sand)]/20">
           <div className="flex items-start gap-3">
             <div className="w-0.5 self-stretch bg-[var(--svaas-olive)] shrink-0 rounded-full" />
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
-                <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Done</p>
+                <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Done</p>
                 {undoAvailable && (
-                  <button onClick={handleUndo} className="text-[12px] text-[var(--svaas-brown-light)] hover:text-[var(--svaas-brown)]">Undo</button>
+                  <button onClick={handleUndo} className="text-[13px] text-[var(--svaas-brown-light)] hover:text-[var(--svaas-brown)]">Undo</button>
                 )}
               </div>
               {wins.map((w, i) => <p key={i} className="text-[14px] text-[var(--svaas-brown)]">{w}</p>)}
@@ -230,10 +228,10 @@ export default function TodayPage() {
         </div>
       )}
 
-      {/* OVERDUE FOLLOW-UPS - thin ruled list */}
+      {/* OVERDUE FOLLOW-UPS */}
       {overdueWaiting.length > 0 && (
-        <section className="pt-6 pb-2">
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-clay)] uppercase mb-3">Follow up ({overdueWaiting.length})</p>
+        <section className="pt-8 pb-2">
+          <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-clay)] uppercase mb-4">Follow up ({overdueWaiting.length})</p>
           <div className="divide-y divide-[var(--svaas-sand)]/20">
             {overdueWaiting.map((t: any) => {
               const daysOver = getDaysOverdueWaiting(t);
@@ -241,7 +239,7 @@ export default function TodayPage() {
                 <div key={t.id} className="py-3 flex items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <span className="text-[14px] font-medium text-[var(--svaas-brown-dark)]">{t.title}</span>
-                    <span className="text-[12px] text-[var(--svaas-clay)] ml-2">{t.waitingOnPerson} · {daysOver}d late</span>
+                    <span className="text-[13px] text-[var(--svaas-clay)] ml-2">{t.waitingOnPerson} · {daysOver}d late</span>
                   </div>
                   <button onClick={() => handleDone(t)} className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium shrink-0">Received</button>
                 </div>
@@ -251,20 +249,20 @@ export default function TodayPage() {
         </section>
       )}
 
-      {/* FOCUS NOW - Large treatment, max 3. Editorial blocks, not cards. */}
+      {/* FOCUS NOW - Important, dominant section */}
       {focusNow.length > 0 && (
-        <section className="pt-8">
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-dark)] uppercase mb-5">Focus now</p>
+        <section className="pt-10">
+          <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-dark)] uppercase mb-6">Focus now</p>
           <div className="space-y-0 divide-y divide-[var(--svaas-sand)]/30">
             {focusNow.map((task: any) => {
               const isCommitted = task.status === 'committed_today';
               return (
-                <div key={task.id} className="py-6 first:pt-0">
+                <div key={task.id} className="py-7 first:pt-0">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      {isCommitted && <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase mb-1.5">Committed</p>}
-                      <h3 className="text-[18px] font-medium text-[var(--svaas-brown-dark)] leading-snug font-[family-name:var(--font-serif)]">{task.title}</h3>
-                      <div className="mt-2 space-y-0.5 text-[13px]">
+                      {isCommitted && <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase mb-2">Committed</p>}
+                      <h3 className="text-[20px] font-medium text-[var(--svaas-brown-dark)] leading-snug font-[family-name:var(--font-serif)]">{task.title}</h3>
+                      <div className="mt-3 space-y-1 text-[14px]">
                         <p className="text-[var(--svaas-brown)]"><span className="text-[var(--svaas-brown-light)]">Why:</span> {getWhy(task)}</p>
                         <p className="text-[var(--svaas-clay)]"><span className="text-[var(--svaas-brown-light)]">If ignored:</span> {getConsequence(task)}</p>
                       </div>
@@ -272,12 +270,12 @@ export default function TodayPage() {
                     <KebabMenu actions={getKebabActions(task)} />
                   </div>
 
-                  <div className="flex items-center gap-3 mt-4">
+                  <div className="flex items-center gap-3 mt-5">
                     {isCommitted ? (
-                      <button onClick={() => handleDone(task)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Done</button>
+                      <button onClick={() => handleDone(task)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[14px] rounded-lg font-medium">Done</button>
                     ) : (
                       <>
-                        <button onClick={() => commitTask(task.id)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Commit</button>
+                        <button onClick={() => commitTask(task.id)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[14px] rounded-lg font-medium">Commit</button>
                         <button onClick={() => handleDone(task)} className="text-[13px] text-[var(--svaas-brown-light)]">Done</button>
                       </>
                     )}
@@ -291,20 +289,20 @@ export default function TodayPage() {
         </section>
       )}
 
-      {/* UP NEXT - Compact rows, minimal. No cards. */}
+      {/* UP NEXT - Lighter, less prominent */}
       {upNext.length > 0 && (
         <section className="pt-8">
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-light)] uppercase mb-3">Up next</p>
+          <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-light)] uppercase mb-3">Up next</p>
           <div className="divide-y divide-[var(--svaas-sand)]/20">
             {upNext.map((task: any) => (
-              <div key={task.id} className="py-3">
+              <div key={task.id} className="py-3.5">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-medium text-[var(--svaas-brown-dark)] truncate">{task.title}</p>
-                    <p className="text-[12px] text-[var(--svaas-brown-light)] mt-0.5">{task.priority} · {task.department}</p>
+                    <p className="text-[16px] text-[var(--svaas-brown)] truncate">{task.title}</p>
+                    <p className="text-[13px] text-[var(--svaas-brown-light)] mt-0.5">{task.priority} · {task.department}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => commitTask(task.id)} className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[12px] rounded-lg font-medium">Commit</button>
+                    <button onClick={() => commitTask(task.id)} className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Commit</button>
                     <KebabMenu actions={getKebabActions(task)} />
                   </div>
                 </div>
@@ -315,28 +313,27 @@ export default function TodayPage() {
         </section>
       )}
 
-      {/* EVERYTHING ELSE - Collapsed by default */}
+      {/* EVERYTHING ELSE - Nearly invisible, collapsed */}
       {everythingElse.length > 0 && (
-        <section className="pt-6">
+        <section className="pt-8">
           {!showEverythingElse ? (
             <button
               onClick={() => setShowEverythingElse(true)}
-              className="text-[13px] text-[var(--svaas-brown-light)] hover:text-[var(--svaas-brown)] transition-colors"
+              className="text-[13px] text-[var(--svaas-brown-light)]/60 hover:text-[var(--svaas-brown-light)] transition-colors"
             >
-              View all ({everythingElse.length} more tasks)
+              {everythingElse.length} more tasks
             </button>
           ) : (
             <>
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-light)] uppercase">Everything else</p>
+                <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-light)]/60 uppercase">Backlog</p>
                 <button onClick={() => setShowEverythingElse(false)} className="text-[13px] text-[var(--svaas-brown-light)]">Collapse</button>
               </div>
-              <div className="divide-y divide-[var(--svaas-sand)]/20">
+              <div className="divide-y divide-[var(--svaas-sand)]/15">
                 {everythingElse.map((task: any) => (
                   <div key={task.id} className="py-2.5 flex items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className="text-[14px] text-[var(--svaas-brown-dark)] truncate">{task.title}</p>
-                      <p className="text-[11px] text-[var(--svaas-brown-light)] mt-0.5">{task.department}</p>
+                      <p className="text-[14px] text-[var(--svaas-brown-light)] truncate">{task.title}</p>
                     </div>
                     <button onClick={() => commitTask(task.id)} className="px-3 py-1.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[12px] rounded-lg shrink-0">Commit</button>
                   </div>
@@ -347,8 +344,8 @@ export default function TodayPage() {
         </section>
       )}
 
-      {/* ADD TASK - minimal */}
-      <section className="pt-6 pb-2">
+      {/* ADD TASK */}
+      <section className="pt-8 pb-4">
         {showAddTask ? (
           <div className="border-t border-[var(--svaas-sand)]/30 pt-4 space-y-3">
             <input
@@ -360,7 +357,7 @@ export default function TodayPage() {
               autoFocus
             />
             <div className="flex gap-2">
-              <button onClick={handleAddTask} disabled={!newTaskTitle.trim()} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium disabled:opacity-30">Add</button>
+              <button onClick={handleAddTask} disabled={!newTaskTitle.trim()} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[14px] rounded-lg font-medium disabled:opacity-30">Add</button>
               <button onClick={() => { setShowAddTask(false); setNewTaskTitle(''); }} className="text-[13px] text-[var(--svaas-brown-light)]">Cancel</button>
             </div>
           </div>

@@ -40,7 +40,7 @@ function getSpineColor(status: string): string {
   switch (status) {
     case 'committed_today': case 'in_progress': return 'bg-[var(--svaas-olive)]';
     case 'blocked': return 'bg-[var(--svaas-clay)]';
-    case 'waiting_on': return 'bg-[var(--svaas-slate)]';
+    case 'waiting_on': return 'bg-[var(--svaas-brown-light)]';
     default: return 'bg-[var(--svaas-sand)]/40';
   }
 }
@@ -64,8 +64,8 @@ export default function StreamPage() {
   const dayNumber = Math.max(1, Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
   const actionable = getActionableTasks(tasks, dayNumber);
-  const top3 = actionable.slice(0, 3);
-  const remaining = actionable.slice(3);
+  const top10 = actionable.slice(0, 10);
+  const remaining = actionable.slice(10);
   const doneTasks = tasks.filter(t => t.status === 'done');
 
   const streamPhases = [...new Set(tasks.map(t => t.phase))];
@@ -115,55 +115,55 @@ export default function StreamPage() {
 
   return (
     <div className="space-y-0 max-w-2xl mx-auto">
-      <header className="pt-3 pb-6 border-b border-[var(--svaas-sand)]/30">
+      <header className="pt-4 pb-8 border-b border-[var(--svaas-sand)]/30">
         <BackToHome />
         <div className="mt-4">
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Stream</p>
-          <h1 className="text-[24px] font-medium text-[var(--svaas-brown-dark)] mt-1 font-[family-name:var(--font-serif)]">{stream.name}</h1>
+          <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Stream</p>
+          <h1 className="text-[32px] font-medium text-[var(--svaas-brown-dark)] mt-2 font-[family-name:var(--font-serif)]">{stream.name}</h1>
         </div>
       </header>
 
-      {/* Progress - inline narrative */}
-      <div className="py-5 border-b border-[var(--svaas-sand)]/20">
-        <p className="text-[14px] text-[var(--svaas-brown)]">
+      {/* Progress */}
+      <div className="py-6 border-b border-[var(--svaas-sand)]/20">
+        <p className="text-[16px] text-[var(--svaas-brown)]">
           {done} of {tasks.length} actions complete ({progress}%).
           {blocked > 0 && <span className="text-[var(--svaas-clay)]"> {blocked} blocked.</span>}
         </p>
-        <div className="h-0.5 bg-[var(--svaas-sand)]/30 rounded-full overflow-hidden mt-2">
+        <div className="h-0.5 bg-[var(--svaas-sand)]/30 rounded-full overflow-hidden mt-3">
           <div className="h-full bg-[var(--svaas-olive)] rounded-full transition-all" style={{ width: `${progress}%` }} />
         </div>
       </div>
 
-      {/* Bottleneck - inline with spine */}
+      {/* Bottleneck */}
       {stream.currentBottleneck && (
-        <div className="py-5 border-b border-[var(--svaas-sand)]/20 flex items-start gap-3">
+        <div className="py-6 border-b border-[var(--svaas-sand)]/20 flex items-start gap-3">
           <div className="w-0.5 self-stretch bg-[var(--svaas-clay)] shrink-0 rounded-full" />
           <div className="flex-1">
-            <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-clay)] uppercase mb-1">Current bottleneck</p>
-            <p className="text-[14px] text-[var(--svaas-brown-dark)]">{stream.currentBottleneck}</p>
-            {stream.waitingOn && <p className="text-[12px] text-[var(--svaas-brown-light)] mt-1">Waiting on: {stream.waitingOn}</p>}
+            <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-clay)] uppercase mb-2">Current bottleneck</p>
+            <p className="text-[16px] text-[var(--svaas-brown-dark)]">{stream.currentBottleneck}</p>
+            {stream.waitingOn && <p className="text-[13px] text-[var(--svaas-brown-light)] mt-1">Waiting on: {stream.waitingOn}</p>}
           </div>
         </div>
       )}
 
-      {/* Next Milestone - inline with spine */}
+      {/* Next Milestone */}
       {nextMilestone && (
-        <div className="py-5 border-b border-[var(--svaas-sand)]/20 flex items-start gap-3">
+        <div className="py-6 border-b border-[var(--svaas-sand)]/20 flex items-start gap-3">
           <div className="w-0.5 self-stretch bg-[var(--svaas-olive)] shrink-0 rounded-full" />
           <div className="flex-1">
-            <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase mb-1">Next milestone</p>
-            <p className="text-[14px] font-medium text-[var(--svaas-brown-dark)]">{nextMilestone.title}</p>
-            <p className="text-[12px] text-[var(--svaas-brown-light)] mt-1">{milestoneGatesRemaining} requirement{milestoneGatesRemaining !== 1 ? 's' : ''} remaining · Target Day {nextMilestone.dayTarget}</p>
+            <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase mb-2">Next milestone</p>
+            <p className="text-[16px] font-medium text-[var(--svaas-brown-dark)]">{nextMilestone.title}</p>
+            <p className="text-[13px] text-[var(--svaas-brown-light)] mt-1">{milestoneGatesRemaining} requirement{milestoneGatesRemaining !== 1 ? 's' : ''} remaining · Target Day {nextMilestone.dayTarget}</p>
           </div>
         </div>
       )}
 
-      {/* TOP 3 - Larger editorial blocks with context */}
-      {top3.length > 0 && (
-        <section className="pt-6">
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-dark)] uppercase mb-4">Top actions</p>
+      {/* TOP ACTIONS - Editorial blocks */}
+      {top10.length > 0 && (
+        <section className="pt-8">
+          <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-dark)] uppercase mb-5">Top actions</p>
           <div className="divide-y divide-[var(--svaas-sand)]/25">
-            {top3.map(task => {
+            {top10.map(task => {
               const primary = getPrimaryAction(task);
               const kebabActions = getTaskKebab(task);
               const statusLabel = getStatusLabel(task.status);
@@ -172,13 +172,13 @@ export default function StreamPage() {
                 <div key={task.id} className="py-5 first:pt-0">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      {statusLabel && <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase mb-1">{statusLabel}</p>}
-                      <h3 className="text-[16px] font-medium text-[var(--svaas-brown-dark)] leading-snug font-[family-name:var(--font-serif)]">{task.title}</h3>
-                      {task.blockedReason && <p className="text-[13px] text-[var(--svaas-clay)] mt-1">Blocked: {task.blockedReason}</p>}
+                      {statusLabel && <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase mb-1.5">{statusLabel}</p>}
+                      <h3 className="text-[18px] font-medium text-[var(--svaas-brown-dark)] leading-snug font-[family-name:var(--font-serif)]">{task.title}</h3>
+                      {task.blockedReason && <p className="text-[14px] text-[var(--svaas-clay)] mt-1">Blocked: {task.blockedReason}</p>}
                       {task.status === 'waiting_on' && task.waitingOnPerson && (
-                        <p className="text-[13px] text-[var(--svaas-slate)] mt-1">Waiting on: {task.waitingOnPerson}{task.waitingOnDate ? ` (expected ${task.waitingOnDate})` : ''}</p>
+                        <p className="text-[14px] text-[var(--svaas-brown-light)] mt-1">Waiting on: {task.waitingOnPerson}{task.waitingOnDate ? ` (expected ${task.waitingOnDate})` : ''}</p>
                       )}
-                      <div className="flex items-center gap-3 text-[12px] text-[var(--svaas-brown-light)] mt-1.5">
+                      <div className="flex items-center gap-3 text-[13px] text-[var(--svaas-brown-light)] mt-2">
                         <span>{task.owner}</span>
                         <span className={task.priority === 'CRITICAL' ? 'text-[var(--svaas-clay)] font-medium' : ''}>{task.priority}</span>
                         {task.dayRangeEnd && dayNumber > task.dayRangeEnd && (
@@ -189,8 +189,8 @@ export default function StreamPage() {
                     <KebabMenu actions={kebabActions} />
                   </div>
                   {primary && (
-                    <div className="mt-3">
-                      <button onClick={primary.onClick} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">{primary.label}</button>
+                    <div className="mt-4">
+                      <button onClick={primary.onClick} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[14px] rounded-lg font-medium">{primary.label}</button>
                     </div>
                   )}
                 </div>
@@ -200,15 +200,15 @@ export default function StreamPage() {
         </section>
       )}
 
-      {top3.length === 0 && (
-        <div className="py-8 text-center">
-          <p className="text-[16px] text-[var(--svaas-olive)] font-medium font-[family-name:var(--font-serif)]">All caught up in this stream.</p>
+      {top10.length === 0 && (
+        <div className="py-12 text-center">
+          <p className="text-[18px] text-[var(--svaas-olive)] font-medium font-[family-name:var(--font-serif)]">All caught up in this stream.</p>
         </div>
       )}
 
-      {/* REMAINING - Compact rows, collapsed by default */}
+      {/* REMAINING - Collapsed */}
       {remaining.length > 0 && (
-        <section className="pt-6">
+        <section className="pt-8">
           {!showAll ? (
             <button
               onClick={() => setShowAll(true)}
@@ -218,8 +218,8 @@ export default function StreamPage() {
             </button>
           ) : (
             <>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-light)] uppercase">All tasks</p>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-light)] uppercase">All tasks</p>
                 <button onClick={() => setShowAll(false)} className="text-[13px] text-[var(--svaas-brown-light)]">Collapse</button>
               </div>
               <div className="divide-y divide-[var(--svaas-sand)]/20">
@@ -228,11 +228,11 @@ export default function StreamPage() {
                   const kebabActions = getTaskKebab(task);
 
                   return (
-                    <div key={task.id} className="py-3 flex items-center gap-3">
+                    <div key={task.id} className="py-3.5 flex items-center gap-3">
                       <div className={`w-0.5 self-stretch ${getSpineColor(task.status)} shrink-0 rounded-full`} />
                       <div className="flex-1 min-w-0">
                         <p className="text-[14px] font-medium text-[var(--svaas-brown-dark)] truncate">{task.title}</p>
-                        <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[var(--svaas-brown-light)]">
+                        <div className="flex items-center gap-2 mt-0.5 text-[13px] text-[var(--svaas-brown-light)]">
                           <span>{task.owner}</span>
                           <span>{task.priority}</span>
                           {task.dayRangeEnd && dayNumber > task.dayRangeEnd && (
@@ -241,7 +241,7 @@ export default function StreamPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        {primary && <button onClick={primary.onClick} className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[12px] rounded-lg font-medium">{primary.label}</button>}
+                        {primary && <button onClick={primary.onClick} className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">{primary.label}</button>}
                         <KebabMenu actions={kebabActions} />
                       </div>
                     </div>
@@ -255,16 +255,16 @@ export default function StreamPage() {
 
       {/* Done Tasks (collapsed) */}
       {doneTasks.length > 0 && (
-        <section className="pt-6">
+        <section className="pt-8">
           <details>
             <summary className="text-[13px] text-[var(--svaas-brown-light)] cursor-pointer hover:text-[var(--svaas-brown)]">
               {doneTasks.length} completed
             </summary>
-            <div className="mt-3 divide-y divide-[var(--svaas-sand)]/15">
+            <div className="mt-4 divide-y divide-[var(--svaas-sand)]/15">
               {doneTasks.map(task => (
-                <div key={task.id} className="flex items-center gap-3 py-2">
-                  <span className="text-[13px] text-[var(--svaas-olive)]">&#10003;</span>
-                  <p className="text-[13px] text-[var(--svaas-brown-light)] line-through">{task.title}</p>
+                <div key={task.id} className="flex items-center gap-3 py-2.5">
+                  <span className="text-[14px] text-[var(--svaas-olive)]">&#10003;</span>
+                  <p className="text-[14px] text-[var(--svaas-brown-light)] line-through">{task.title}</p>
                 </div>
               ))}
             </div>

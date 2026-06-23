@@ -56,36 +56,36 @@ export default function DecisionsPage() {
 
   return (
     <div className="space-y-0 max-w-2xl mx-auto">
-      <header className="pt-2 pb-6 border-b border-[var(--svaas-sand)]/30">
+      <header className="pt-4 pb-8 border-b border-[var(--svaas-sand)]/30">
         <BackToHome />
-        <h1 className="text-[24px] font-medium text-[var(--svaas-brown-dark)] mt-3 font-[family-name:var(--font-serif)]">Decisions</h1>
-        <p className="text-[13px] text-[var(--svaas-brown-light)] mt-1">{pending.length} pending · {decided.length} decided</p>
+        <h1 className="text-[32px] font-medium text-[var(--svaas-brown-dark)] mt-4 font-[family-name:var(--font-serif)]">Decisions</h1>
+        <p className="text-[14px] text-[var(--svaas-brown-light)] mt-1">{pending.length} pending · {decided.length} decided</p>
       </header>
 
-      {/* FEATURED DECISION - Editorial panel with context */}
+      {/* FEATURED DECISION */}
       {topDecision && (
-        <section className="py-8 border-b border-[var(--svaas-sand)]/30">
-          <div className="flex items-start justify-between mb-4">
-            <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Decision of the day</p>
+        <section className="py-10 border-b border-[var(--svaas-sand)]/30">
+          <div className="flex items-start justify-between mb-5">
+            <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Decision of the day</p>
             <KebabMenu actions={getDecisionKebab(topDecision)} />
           </div>
 
-          <h2 className="text-[24px] font-medium text-[var(--svaas-brown-dark)] leading-snug font-[family-name:var(--font-serif)]">{topDecision.title}</h2>
-          {topDecision.context && <p className="text-[14px] text-[var(--svaas-brown)] leading-relaxed mt-3">{topDecision.context}</p>}
+          <h2 className="text-[24px] font-[family-name:var(--font-serif)] text-[var(--svaas-brown-dark)] leading-snug">{topDecision.title}</h2>
+          {topDecision.context && <p className="text-[16px] text-[var(--svaas-brown)] leading-relaxed mt-4">{topDecision.context}</p>}
 
-          <div className="mt-5 space-y-1.5 text-[13px]">
+          <div className="mt-6 space-y-2 text-[14px]">
             <p><span className="text-[var(--svaas-brown-light)]">Impact:</span> <span className="text-[var(--svaas-brown)]">Blocks downstream streams and tasks until decided.</span></p>
             <p><span className="text-[var(--svaas-brown-light)]">Cost of waiting:</span> <span className="text-[var(--svaas-clay)] font-medium">{getCostOfWaiting(topDecision)}</span></p>
           </div>
 
-          {/* Recommendation + action */}
-          <div className="mt-6 pt-5 border-t border-[var(--svaas-sand)]/25">
-            <p className="text-[12px] text-[var(--svaas-brown-light)] mb-1">Drishti recommends</p>
-            <p className="text-[16px] font-medium text-[var(--svaas-brown-dark)]">{topDecision.defaultOption}</p>
-            <div className="flex items-center gap-3 mt-4">
+          {/* Recommendation */}
+          <div className="mt-8 pt-6 border-t border-[var(--svaas-sand)]/25">
+            <p className="text-[13px] text-[var(--svaas-olive)] mb-1.5">Drishti recommends</p>
+            <p className="text-[18px] font-medium text-[var(--svaas-brown-dark)] font-[family-name:var(--font-serif)]">{topDecision.defaultOption}</p>
+            <div className="flex items-center gap-3 mt-5">
               <button
                 onClick={() => acceptDecisionDefault(topDecision.id)}
-                className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium"
+                className="px-6 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[14px] rounded-lg font-medium"
               >
                 Accept
               </button>
@@ -95,7 +95,7 @@ export default function DecisionsPage() {
                   if (alt) makeDecision(topDecision.id, alt.label);
                   else if (topDecision.deferCount < topDecision.maxDeferrals) deferDecision(topDecision.id);
                 }}
-                className="px-5 py-2.5 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-[13px] rounded-lg font-medium"
+                className="px-6 py-2.5 border border-[var(--svaas-sand)] text-[var(--svaas-brown)] text-[14px] rounded-lg font-medium"
               >
                 Reject
               </button>
@@ -104,21 +104,21 @@ export default function DecisionsPage() {
         </section>
       )}
 
-      {/* OTHER PENDING - Executive rows. Title + recommendation + button on one line. */}
+      {/* OTHER PENDING */}
       {otherPending.length > 0 && (
-        <section className="pt-6">
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-light)] uppercase mb-3">Also pending</p>
+        <section className="pt-8">
+          <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-light)] uppercase mb-4">Also pending</p>
           <div className="divide-y divide-[var(--svaas-sand)]/20">
             {otherPending.map((d: any) => {
               const deadlineInfo = getDeadlineLabel(d);
               return (
-                <div key={d.id} className="py-3.5 flex items-center gap-4">
+                <div key={d.id} className="py-4 flex items-center gap-4">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[15px] font-medium text-[var(--svaas-brown-dark)] truncate">{d.title}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[12px] text-[var(--svaas-brown-light)]">{d.defaultOption}</span>
+                    <p className="text-[16px] font-medium text-[var(--svaas-brown-dark)] truncate">{d.title}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[13px] text-[var(--svaas-brown-light)]">{d.defaultOption}</span>
                       {deadlineInfo && (
-                        <span className={`text-[11px] font-medium ${deadlineInfo.urgent ? 'text-[var(--svaas-clay)]' : 'text-[var(--svaas-brown-light)]'}`}>
+                        <span className={`text-[13px] font-medium ${deadlineInfo.urgent ? 'text-[var(--svaas-clay)]' : 'text-[var(--svaas-brown-light)]'}`}>
                           · {deadlineInfo.text}
                         </span>
                       )}
@@ -127,7 +127,7 @@ export default function DecisionsPage() {
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => acceptDecisionDefault(d.id)}
-                      className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[12px] rounded-lg font-medium"
+                      className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium"
                     >
                       Accept
                     </button>
@@ -140,19 +140,19 @@ export default function DecisionsPage() {
         </section>
       )}
 
-      {/* DECIDED - Collapsed */}
+      {/* DECIDED */}
       {decided.length > 0 && (
-        <section className="pt-6">
+        <section className="pt-8">
           <details>
             <summary className="text-[13px] text-[var(--svaas-brown-light)] cursor-pointer hover:text-[var(--svaas-brown)]">
               {decided.length} decided
             </summary>
-            <div className="mt-3 divide-y divide-[var(--svaas-sand)]/20">
+            <div className="mt-4 divide-y divide-[var(--svaas-sand)]/20">
               {decided.map((d: any) => (
-                <div key={d.id} className="py-2.5 flex items-center gap-3">
-                  <span className="text-[var(--svaas-olive)] text-[13px]">&#10003;</span>
+                <div key={d.id} className="py-3 flex items-center gap-3">
+                  <span className="text-[var(--svaas-olive)] text-[14px]">&#10003;</span>
                   <span className="text-[14px] text-[var(--svaas-brown)]">{d.title}</span>
-                  <span className="text-[12px] text-[var(--svaas-brown-light)]">&rarr; {d.decisionMade}</span>
+                  <span className="text-[13px] text-[var(--svaas-brown-light)]">&rarr; {d.decisionMade}</span>
                 </div>
               ))}
             </div>
@@ -161,9 +161,9 @@ export default function DecisionsPage() {
       )}
 
       {pending.length === 0 && decided.length === 0 && (
-        <div className="py-12 text-center">
-          <p className="text-[18px] text-[var(--svaas-brown)] font-medium font-[family-name:var(--font-serif)]">No decisions at the moment.</p>
-          <p className="text-[14px] text-[var(--svaas-brown-light)] mt-2">When decisions arise, they will appear here.</p>
+        <div className="py-16 text-center">
+          <p className="text-[20px] text-[var(--svaas-brown-dark)] font-medium font-[family-name:var(--font-serif)]">No decisions at the moment.</p>
+          <p className="text-[14px] text-[var(--svaas-brown-light)] mt-3">When decisions arise, they will appear here.</p>
         </div>
       )}
 
