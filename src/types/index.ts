@@ -1,9 +1,12 @@
 // ============================================================
-// SVAAS Founder OS — Core Types
+// Tattva — Core Types
 // ============================================================
 
+// Future: User roles for multi-user support
+// type UserRole = 'founder' | 'cofounder' | 'department_head' | 'operations_lead' | 'advisor';
+
 export type StreamStatus = 'green' | 'yellow' | 'red' | 'grey';
-export type TaskStatus = 'not_started' | 'committed_today' | 'in_progress' | 'waiting_on' | 'blocked' | 'deferred' | 'done';
+export type TaskStatus = 'not_started' | 'committed_today' | 'in_progress' | 'waiting_on' | 'blocked' | 'deferred' | 'done' | 'cancelled';
 export type TaskPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 export type DecisionStatus = 'pending' | 'decided' | 'defaulted' | 'deferred';
 export type DependencyType = 'hard_block' | 'soft_block' | 'enables';
@@ -44,6 +47,12 @@ export interface StreamDependency {
   strength: number;
 }
 
+export interface TaskNote {
+  id: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface Task {
   id: string;
   streamId: string;
@@ -74,6 +83,11 @@ export interface Task {
   deferredReviewDate?: string | null;
   // Committed
   committedAt?: string | null;
+  // Task notes (timestamped)
+  notes?: TaskNote[];
+  // Source tracking
+  source?: 'imported' | 'founder';
+  createdAt?: string;
   // Computed
   leverageScore?: number;
   downstreamCount?: number;

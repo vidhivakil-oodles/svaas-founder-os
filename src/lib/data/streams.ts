@@ -68,7 +68,7 @@ export const VENTURE_STREAMS: Omit<VentureStream, 'taskCount' | 'tasksDone' | 't
   },
   {
     id: 'stream-founder',
-    name: 'Founder OS',
+    name: 'Founder',
     slug: 'founder',
     displayOrder: 6,
     status: 'yellow',

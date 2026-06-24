@@ -4,53 +4,43 @@ import { useState } from 'react';
 import { useAppState } from '@/lib/state-provider';
 import { getDayNumber, getWeekNumber, VENTURE_CONFIG } from '@/lib/venture-config';
 import Link from 'next/link';
+import { AppNav, BackToHome } from '@/components/shared/nav';
+import { VentureJournal, WeekJournalSummary } from '@/components/shared/venture-journal';
 
-// Dynamically calculate review data from real state
 function calculateReviewData(state: any) {
   const weekNumber = getWeekNumber();
   const dayNumber = getDayNumber();
   const dayStart = (weekNumber - 1) * 7 + 1;
   const dayEnd = weekNumber * 7;
 
-  // Tasks completed (those with completedAt in this venture)
   const completedThisWeek = state.tasks
     .filter((t: any) => t.status === 'done' && t.completedAt)
     .map((t: any) => t.title)
     .slice(0, 5);
 
-  // Stuck items
   const stuckItems = state.tasks
     .filter((t: any) => t.status === 'blocked' || (t.status === 'not_started' && t.priority === 'CRITICAL' && t.dayRangeEnd && dayNumber > t.dayRangeEnd))
     .slice(0, 5)
     .map((t: any) => ({
+      id: t.id,
       title: t.title,
       reason: t.blockedReason || 'Overdue',
       daysOverdue: t.dayRangeEnd ? Math.max(0, dayNumber - t.dayRangeEnd) : 0,
       stream: state.streams.find((s: any) => s.id === t.streamId)?.name || 'Unknown',
+      status: t.status,
     }));
 
-  // Vendor waits
   const vendorWaits = state.waitingOn.filter((w: any) => w.status === 'active');
 
-  // Pending decisions (sorted by impact)
   const pendingDecisions = state.decisions
     .filter((d: any) => d.status === 'pending')
     .sort((a: any, b: any) => b.impactScore - a.impactScore)
-    .slice(0, 3)
-    .map((d: any) => ({
-      title: d.title,
-      default: d.defaultOption,
-      daysOverdue: d.deadline && new Date(d.deadline) < new Date() ? Math.floor((Date.now() - new Date(d.deadline).getTime()) / (1000 * 60 * 60 * 24)) : 0,
-      daysRemaining: d.deadline && new Date(d.deadline) > new Date() ? Math.floor((new Date(d.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0,
-      impact: d.impactScore,
-    }));
+    .slice(0, 3);
 
-  // Suggested focus (highest priority not-started critical task)
   const actionable = state.tasks
     .filter((t: any) => t.status === 'not_started' && !t.blockedReason && t.priority === 'CRITICAL')
     .slice(0, 3);
 
-  // Attention (from engagement)
   const attention = state.streams.map((s: any) => ({
     stream: s.name,
     actions: state.dailyEngagement
@@ -58,7 +48,6 @@ function calculateReviewData(state: any) {
       .length,
   })).sort((a: any, b: any) => b.actions - a.actions);
 
-  // Dream protection
   const thisWeekActivity = state.dailyEngagement.filter((e: any) => e.hadActivity).length;
 
   return {
@@ -71,6 +60,7 @@ function calculateReviewData(state: any) {
     pendingDecisions,
     suggestedFocus: {
       primary: actionable[0]?.title || 'No critical actions pending',
+      primaryId: actionable[0]?.id || null,
       reason: actionable[0]?.notesDependencies || '',
       secondary: actionable.slice(1).map((t: any) => t.title),
     },
@@ -79,279 +69,384 @@ function calculateReviewData(state: any) {
   };
 }
 
-const STEPS = [
-  { id: 1, title: 'What Got Done', time: '2 min' },
-  { id: 2, title: 'What\'s Stuck', time: '3 min' },
-  { id: 3, title: 'Vendor Check', time: '2 min' },
-  { id: 4, title: 'Decisions', time: '3 min' },
-  { id: 5, title: 'Next Week Focus', time: '3 min' },
-  { id: 6, title: 'Momentum', time: '2 min' },
-  { id: 7, title: 'Patterns', time: '1 min' },
+const SECTIONS = [
+  { id: 'progress', title: 'What Happened' },
+  { id: 'stuck', title: 'What Got Stuck' },
+  { id: 'vendors', title: 'Vendor Check' },
+  { id: 'decisions', title: 'Decisions' },
+  { id: 'next', title: 'Next Week' },
+  { id: 'momentum', title: 'Momentum' },
+  { id: 'journal', title: 'Venture Journal' },
+  { id: 'close', title: 'Close Week' },
 ];
 
 export default function WeeklyReviewPage() {
-  const [currentStep, setCurrentStep] = useState(1);
-  const { state } = useAppState();
+  const [currentSection, setCurrentSection] = useState(0);
+  const [nextWeekCommitment, setNextWeekCommitment] = useState('');
+  const [weekClosed, setWeekClosed] = useState(false);
+  const { state, setWeeklyCommitment, commitTask, blockTask, waitingOnTask, markTaskDone, acceptDecisionDefault, deferDecision, markWaitingOnReceived, closeWeek } = useAppState();
   const data = calculateReviewData(state);
 
+  function goNext() {
+    if (currentSection < SECTIONS.length - 1) setCurrentSection(currentSection + 1);
+  }
+  function goPrev() {
+    if (currentSection > 0) setCurrentSection(currentSection - 1);
+  }
+
   return (
-    <div className="space-y-6">
-      <header>
-        <Link href="/" className="text-xs text-zinc-600 hover:text-zinc-400">← Venture Radar</Link>
-        <h1 className="text-2xl font-bold text-zinc-100 mt-1">Weekly Review</h1>
-        <p className="text-sm text-zinc-500">
-          Week {data.weekNumber} &bull; {data.dayRange} &bull; ~15 minutes
-        </p>
+    <div className="space-y-0 max-w-2xl mx-auto">
+      {/* Letter Masthead */}
+      <header className="pt-4 pb-10 border-b border-[var(--svaas-sand)]/30">
+        <BackToHome />
+        <div className="mt-6">
+          <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">A letter from Drishti</p>
+          <h1 className="text-[40px] font-semibold text-[var(--svaas-brown-dark)] mt-3 leading-[1.1] font-[family-name:var(--font-serif)]">Week {data.weekNumber}</h1>
+          <p className="text-[14px] text-[var(--svaas-brown-light)] mt-2">{data.dayRange} · {data.phase}</p>
+        </div>
       </header>
 
-      {/* Step Indicator */}
-      <div className="flex items-center gap-1">
-        {STEPS.map(step => (
-          <button
-            key={step.id}
-            onClick={() => setCurrentStep(step.id)}
-            className={`flex-1 h-1.5 rounded-full transition-colors ${
-              step.id < currentStep ? 'bg-emerald-600' :
-              step.id === currentStep ? 'bg-amber-500' : 'bg-zinc-800'
-            }`}
-          />
-        ))}
-      </div>
-      <div className="flex items-center justify-between text-xs text-zinc-500">
-        <span>Step {currentStep}/7: {STEPS[currentStep - 1].title}</span>
-        <span>{STEPS[currentStep - 1].time}</span>
-      </div>
+      {/* Section Navigation - editorial table of contents */}
+      <nav className="py-6 border-b border-[var(--svaas-sand)]/20">
+        <p className="text-[11px] font-semibold tracking-[0.14em] text-[var(--svaas-brown-light)] uppercase mb-4">Contents</p>
+        <ol className="space-y-1.5">
+          {SECTIONS.map((section, i) => (
+            <li key={section.id}>
+              <button
+                onClick={() => setCurrentSection(i)}
+                className={`flex items-baseline gap-3 w-full text-left py-1 transition-colors ${
+                  i === currentSection
+                    ? 'text-[var(--svaas-brown-dark)]'
+                    : i < currentSection
+                    ? 'text-[var(--svaas-olive)]'
+                    : 'text-[var(--svaas-brown-light)]'
+                }`}
+              >
+                <span className={`text-[12px] tabular-nums w-4 shrink-0 ${i === currentSection ? 'font-semibold' : ''}`}>{i + 1}</span>
+                <span className={`text-[14px] ${i === currentSection ? 'font-medium' : ''}`}>{section.title}</span>
+                {i < currentSection && <span className="text-[12px] text-[var(--svaas-olive)] ml-auto">&#10003;</span>}
+                {i === currentSection && <span className="text-[11px] text-[var(--svaas-brown-light)] ml-auto uppercase tracking-wide">reading</span>}
+              </button>
+            </li>
+          ))}
+        </ol>
+      </nav>
 
-      {/* Step Content */}
-      <div className="border border-zinc-800 rounded-lg p-6 min-h-[320px]">
-        {currentStep === 1 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-100">What Got Done This Week?</h2>
-            <div className="space-y-2">
-              {data.completedThisWeek.map((item: string, i: number) => (
-                <div key={i} className="flex items-center gap-3 py-2">
-                  <span className="text-emerald-400">✓</span>
-                  <span className="text-zinc-200">{item}</span>
+      {/* Content - Narrative letter sections */}
+      <div className="py-10 min-h-[340px]">
+
+        {/* SECTION: What Happened */}
+        {currentSection === 0 && (
+          <div className="space-y-6">
+            <h2 className="text-[24px] font-[family-name:var(--font-serif)] text-[var(--svaas-brown-dark)]">What happened this week</h2>
+
+            {/* Outcome Summary */}
+            {(() => {
+              const blockersRemoved = state.tasks.filter((t: any) => t.status === 'done' && t.completedAt && t.blockedReason).length;
+              const decisionsMade = state.decisions.filter((d: any) => d.status === 'decided').length;
+              const commitmentsCompleted = data.completedThisWeek.length;
+
+              const advancedStreams = state.streams
+                .filter((s: any) => state.tasks.some((t: any) => t.streamId === s.id && t.status === 'done' && t.completedAt))
+                .map((s: any) => s.name)
+                .slice(0, 3);
+
+              return (commitmentsCompleted > 0 || blockersRemoved > 0 || decisionsMade > 0) ? (
+                <div className="border-l-2 border-[var(--svaas-olive)] pl-5 py-2">
+                  <p className="text-[15px] text-[var(--svaas-brown-dark)] font-medium leading-relaxed">
+                    This week: {blockersRemoved > 0 && <>{blockersRemoved} blocker{blockersRemoved !== 1 ? 's' : ''} removed · </>}{decisionsMade > 0 && <>{decisionsMade} decision{decisionsMade !== 1 ? 's' : ''} made · </>}{commitmentsCompleted} commitment{commitmentsCompleted !== 1 ? 's' : ''} completed
+                  </p>
+                  {advancedStreams.length > 0 && (
+                    <p className="text-[14px] text-[var(--svaas-olive)] mt-2">
+                      Impact: {advancedStreams.join('. ')}{advancedStreams.length > 0 ? ' advanced.' : ''}
+                    </p>
+                  )}
                 </div>
-              ))}
-            </div>
-            <p className="text-sm text-zinc-500 pt-2 border-t border-zinc-800">
-              That&apos;s {data.completedThisWeek.length} actions. {data.completedThisWeek.length >= 3 ? 'Good progress.' : 'Let\'s aim higher next week.'}
+              ) : (
+                <div className="border-l-2 border-[var(--svaas-sand)]/40 pl-5 py-2">
+                  <p className="text-[15px] text-[var(--svaas-brown-light)] leading-relaxed">No measurable progress yet this week.</p>
+                </div>
+              );
+            })()}
+
+            <p className="text-[16px] text-[var(--svaas-brown)] leading-relaxed">
+              {data.completedThisWeek.length > 0
+                ? `You completed ${data.completedThisWeek.length} action${data.completedThisWeek.length !== 1 ? 's' : ''} this week. Here is what moved forward.`
+                : 'No actions completed yet this week. The venture is waiting for momentum.'}
             </p>
+            {data.completedThisWeek.length > 0 && (
+              <div className="space-y-0 divide-y divide-[var(--svaas-sand)]/20">
+                {data.completedThisWeek.map((title: string, i: number) => (
+                  <div key={i} className="flex items-center gap-3 py-3">
+                    <span className="text-[var(--svaas-olive)] text-[14px]">&#10003;</span>
+                    <p className="text-[16px] text-[var(--svaas-brown)]">{title}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            <WeekJournalSummary />
           </div>
         )}
 
-        {currentStep === 2 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-100">What&apos;s Stuck?</h2>
-            <p className="text-sm text-zinc-500">These items need attention:</p>
-            <div className="space-y-4">
-              {data.stuckItems.map((item: any, i: number) => (
-                <div key={i} className="border border-red-900/30 bg-red-950/10 rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-medium text-zinc-200">{item.title}</p>
-                      <p className="text-xs text-zinc-500 mt-0.5">{item.stream}</p>
+        {/* SECTION: What Got Stuck */}
+        {currentSection === 1 && (
+          <div className="space-y-6">
+            <h2 className="text-[24px] font-[family-name:var(--font-serif)] text-[var(--svaas-brown-dark)]">What got stuck</h2>
+            <p className="text-[16px] text-[var(--svaas-brown)] leading-relaxed">
+              {data.stuckItems.length > 0
+                ? `${data.stuckItems.length} item${data.stuckItems.length !== 1 ? 's' : ''} stalled this week. These need your attention to move forward.`
+                : 'Nothing stuck this week. All streams are flowing.'}
+            </p>
+            {data.stuckItems.length > 0 && (
+              <div className="divide-y divide-[var(--svaas-sand)]/20">
+                {data.stuckItems.map((item: any) => (
+                  <div key={item.id} className="py-4 flex items-center justify-between gap-4">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="w-0.5 self-stretch bg-[var(--svaas-clay)] shrink-0 rounded-full mt-1" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[16px] font-medium text-[var(--svaas-brown-dark)]">{item.title}</p>
+                        <p className="text-[13px] text-[var(--svaas-brown-light)] mt-1">{item.stream} · {item.reason}</p>
+                      </div>
                     </div>
-                    <span className="text-xs text-red-400">{item.daysOverdue}d overdue</span>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs rounded text-zinc-300">
-                      Haven&apos;t started yet
-                    </button>
-                    <button className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs rounded text-zinc-300">
-                      Waiting for response
-                    </button>
-                    <button className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-xs rounded text-zinc-100">
-                      Will do this week
+                    <button
+                      onClick={() => commitTask(item.id)}
+                      className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium shrink-0"
+                    >
+                      Commit
                     </button>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {currentStep === 3 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-100">Vendor & External Check</h2>
-            <p className="text-sm text-zinc-500">Who owes you something?</p>
-            <div className="space-y-3">
-              {data.vendorWaits.map((w: any, i: number) => (
-                <div key={i} className="border border-zinc-800 rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-medium text-zinc-200">{w.personOrVendor}</p>
-                      <p className="text-sm text-zinc-400">{w.description}</p>
-                      {w.lastContacted && <p className="text-xs text-zinc-600 mt-1">Last contacted: {w.lastContacted}</p>}
-                    </div>
-                  </div>
-                  <div className="mt-3 flex gap-2">
-                    <button className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-xs rounded text-zinc-100">
-                      Received
-                    </button>
-                    <button className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs rounded text-zinc-300">
-                      Still waiting
-                    </button>
-                    <button className="px-3 py-1.5 bg-amber-800 hover:bg-amber-700 text-xs rounded text-zinc-100">
-                      Follow up now
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {data.vendorWaits.length === 0 && (
-              <p className="text-zinc-500 text-sm">No active vendor waits this week.</p>
+                ))}
+              </div>
             )}
           </div>
         )}
 
-        {currentStep === 4 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-100">Decisions</h2>
-            <p className="text-sm text-zinc-500">{data.pendingDecisions.length} decisions need your attention:</p>
-            <div className="space-y-4">
-              {data.pendingDecisions.map((d: any, i: number) => (
-                <div key={i} className={`border ${d.daysOverdue ? 'border-red-900/40 bg-red-950/10' : 'border-zinc-800'} rounded-lg p-4`}>
-                  <div className="flex items-start justify-between mb-2">
-                    <p className="font-medium text-zinc-200">{d.title}</p>
-                    <span className="text-xs text-zinc-600">Impact: {d.impact}</span>
-                  </div>
-                  {d.daysOverdue && (
-                    <p className="text-xs text-red-400 mb-3">{d.daysOverdue} days overdue</p>
-                  )}
-                  {d.daysRemaining && (
-                    <p className="text-xs text-amber-400 mb-3">{d.daysRemaining} days remaining</p>
-                  )}
-                  <div className="flex gap-2">
-                    <button className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-md font-medium">
-                      Accept Default: {d.default}
-                    </button>
-                    <button className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm rounded-md">
-                      Decide differently
-                    </button>
-                    <button className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-500 text-sm rounded-md">
-                      1 more week
+        {/* SECTION: Vendor Check */}
+        {currentSection === 2 && (
+          <div className="space-y-6">
+            <h2 className="text-[24px] font-[family-name:var(--font-serif)] text-[var(--svaas-brown-dark)]">Who owes you something</h2>
+            <p className="text-[16px] text-[var(--svaas-brown)] leading-relaxed">
+              {data.vendorWaits.length > 0
+                ? `You are waiting on ${data.vendorWaits.length} external party${data.vendorWaits.length !== 1 ? 'ies' : ''}. Follow up if overdue.`
+                : 'No active vendor waits this week. External dependencies are clear.'}
+            </p>
+            {data.vendorWaits.length > 0 && (
+              <div className="divide-y divide-[var(--svaas-sand)]/20">
+                {data.vendorWaits.map((w: any) => (
+                  <div key={w.id} className="py-4 flex items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[16px] font-medium text-[var(--svaas-brown-dark)]">{w.personOrVendor}</p>
+                      <p className="text-[14px] text-[var(--svaas-brown)] mt-1">{w.description}</p>
+                      {w.lastContacted && <p className="text-[13px] text-[var(--svaas-brown-light)] mt-1">Last contacted: {w.lastContacted}</p>}
+                    </div>
+                    <button
+                      onClick={() => markWaitingOnReceived(w.id)}
+                      className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium shrink-0"
+                    >
+                      Received
                     </button>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {currentStep === 5 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-100">Next Week&apos;s Focus</h2>
-            <p className="text-sm text-zinc-500">Based on critical path, the system suggests:</p>
-
-            <div className="border-2 border-amber-800/50 bg-amber-950/20 rounded-lg p-4">
-              <p className="text-xs text-amber-400 font-medium mb-1">#1 ACTION NEXT WEEK</p>
-              <p className="text-zinc-100 font-semibold">{data.suggestedFocus.primary}</p>
-              <p className="text-sm text-zinc-400 mt-1">{data.suggestedFocus.reason}</p>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-xs text-zinc-600">Secondary (if time allows):</p>
-              {data.suggestedFocus.secondary.map((item: any, i: number) => (
-                <div key={i} className="flex items-center gap-2 text-sm text-zinc-400">
-                  <span className="text-zinc-600">•</span>
-                  {item}
-                </div>
-              ))}
-            </div>
-
-            <div className="flex gap-2 pt-3">
-              <button className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-md font-medium">
-                Accept Focus
-              </button>
-              <button className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm rounded-md">
-                Change Focus
-              </button>
-            </div>
+        {/* SECTION: Decisions */}
+        {currentSection === 3 && (
+          <div className="space-y-6">
+            <h2 className="text-[24px] font-[family-name:var(--font-serif)] text-[var(--svaas-brown-dark)]">Decisions awaiting you</h2>
+            <p className="text-[16px] text-[var(--svaas-brown)] leading-relaxed">
+              {data.pendingDecisions.length > 0
+                ? `${data.pendingDecisions.length} decision${data.pendingDecisions.length !== 1 ? 's' : ''} remain open. Each one is delaying downstream work.`
+                : 'No pending decisions this week. Your direction is clear.'}
+            </p>
+            {data.pendingDecisions.length > 0 && (
+              <div className="divide-y divide-[var(--svaas-sand)]/20">
+                {data.pendingDecisions.map((d: any) => {
+                  const daysOverdue = d.deadline && new Date(d.deadline) < new Date() ? Math.floor((Date.now() - new Date(d.deadline).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+                  return (
+                    <div key={d.id} className="py-4 flex items-center justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[16px] font-medium text-[var(--svaas-brown-dark)]">{d.title}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[13px] text-[var(--svaas-olive)]">Drishti recommends: {d.defaultOption}</span>
+                          {daysOverdue > 0 && <span className="text-[13px] text-[var(--svaas-clay)] font-medium">{daysOverdue}d overdue</span>}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => acceptDecisionDefault(d.id)}
+                        className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium shrink-0"
+                      >
+                        Accept
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
-        {currentStep === 6 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-100">Momentum & Attention</h2>
+        {/* SECTION: Next Week */}
+        {currentSection === 4 && (
+          <div className="space-y-6">
+            <h2 className="text-[24px] font-[family-name:var(--font-serif)] text-[var(--svaas-brown-dark)]">My recommendation for next week</h2>
+            <p className="text-[16px] text-[var(--svaas-brown)] leading-relaxed">
+              Based on critical path analysis, here is where your energy will have the most impact.
+            </p>
 
-            {/* Momentum */}
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="border border-zinc-800 rounded-lg p-3">
-                <div className="text-2xl font-bold text-zinc-100">{getDayNumber()}</div>
-                <div className="text-xs text-zinc-600">Day</div>
-              </div>
-              <div className="border border-zinc-800 rounded-lg p-3">
-                <div className="text-2xl font-bold text-zinc-100">{data.dreamProtection.thisWeek}/{data.dreamProtection.target}</div>
-                <div className="text-xs text-zinc-600">Days active</div>
+            <div className="flex items-start gap-3 pt-2">
+              <div className="w-0.5 self-stretch bg-[var(--svaas-olive)] shrink-0 rounded-full" />
+              <div className="flex-1">
+                <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase mb-2">Primary focus</p>
+                <p className="text-[18px] font-medium text-[var(--svaas-brown-dark)] font-[family-name:var(--font-serif)]">{data.suggestedFocus.primary}</p>
+                {data.suggestedFocus.reason && <p className="text-[14px] text-[var(--svaas-brown)] mt-2">{data.suggestedFocus.reason}</p>}
               </div>
             </div>
 
-            {/* Attention Distribution */}
-            <div className="space-y-2">
-              <h3 className="text-sm text-zinc-400">Where attention went this week:</h3>
+            {data.suggestedFocus.secondary.length > 0 && (
+              <div className="space-y-2 pt-4">
+                <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-light)] uppercase">Also consider</p>
+                {data.suggestedFocus.secondary.map((item: any, i: number) => (
+                  <p key={i} className="text-[16px] text-[var(--svaas-brown)] pl-4 border-l-2 border-[var(--svaas-sand)]/30">{item}</p>
+                ))}
+              </div>
+            )}
+
+            {data.suggestedFocus.primaryId && (
+              <div className="pt-4">
+                <button
+                  onClick={() => { commitTask(data.suggestedFocus.primaryId); }}
+                  className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[14px] rounded-lg font-medium"
+                >
+                  Commit to this
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* SECTION: Momentum */}
+        {currentSection === 5 && (
+          <div className="space-y-6">
+            <h2 className="text-[24px] font-[family-name:var(--font-serif)] text-[var(--svaas-brown-dark)]">Your momentum</h2>
+            <p className="text-[16px] text-[var(--svaas-brown)] leading-relaxed">
+              Consistency matters more than intensity. Here is how your week looked.
+            </p>
+
+            <div className="flex gap-10 pt-2">
+              <div>
+                <p className="text-[32px] font-medium text-[var(--svaas-brown-dark)] font-[family-name:var(--font-serif)]">{getDayNumber()}</p>
+                <p className="text-[12px] tracking-[0.12em] text-[var(--svaas-brown-light)] uppercase">Day</p>
+              </div>
+              <div>
+                <p className="text-[32px] font-medium text-[var(--svaas-brown-dark)] font-[family-name:var(--font-serif)]">{data.dreamProtection.thisWeek}<span className="text-[var(--svaas-brown-light)] font-normal">/{data.dreamProtection.target}</span></p>
+                <p className="text-[12px] tracking-[0.12em] text-[var(--svaas-brown-light)] uppercase">Days active</p>
+              </div>
+            </div>
+
+            <div className="space-y-2.5 pt-4">
+              <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-light)] uppercase">Attention distribution</p>
               {data.attention.map((a: any, i: number) => (
-                <div key={i} className="flex items-center gap-3">
-                  <span className="text-xs text-zinc-500 w-36 truncate">{a.stream}</span>
-                  <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
+                <div key={i} className="flex items-center gap-3 py-1">
+                  <span className="text-[14px] text-[var(--svaas-brown)] w-32 truncate">{a.stream}</span>
+                  <div className="flex-1 h-0.5 bg-[var(--svaas-sand)]/30 rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${a.actions > 0 ? 'bg-emerald-600' : 'bg-zinc-800'}`}
+                      className={`h-full rounded-full ${a.actions > 0 ? 'bg-[var(--svaas-olive)]' : 'bg-transparent'}`}
                       style={{ width: `${Math.min((a.actions / 5) * 100, 100)}%` }}
                     />
                   </div>
-                  <span className="text-xs text-zinc-600 w-4 text-right">{a.actions}</span>
+                  <span className="text-[13px] text-[var(--svaas-brown-light)] w-4 text-right">{a.actions}</span>
                 </div>
               ))}
             </div>
-
-            {data.dreamProtection.thisWeek === 0 && (
-              <p className="text-xs text-red-400/80 border-t border-zinc-800 pt-3">
-                Venture momentum is declining. The recovery playbook is available on the Radar.
-              </p>
-            )}
           </div>
         )}
 
-        {currentStep === 7 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-100">Patterns & Insights</h2>
+        {/* SECTION: Venture Journal */}
+        {currentSection === 6 && (
+          <div className="space-y-6">
+            <h2 className="text-[24px] font-[family-name:var(--font-serif)] text-[var(--svaas-brown-dark)]">Venture journal</h2>
+            <p className="text-[16px] text-[var(--svaas-brown)] leading-relaxed">Your venture memory. Notes from the week.</p>
+            <VentureJournal thisWeekOnly={true} maxEntries={30} showNoteInput={true} compact={false} />
+          </div>
+        )}
 
-            <p className="text-zinc-500 text-sm">Patterns will appear after 4+ weeks of activity data.</p>
+        {/* SECTION: Close Week */}
+        {currentSection === 7 && (
+          <div className="space-y-6">
+            <h2 className="text-[24px] font-[family-name:var(--font-serif)] text-[var(--svaas-brown-dark)]">Close this week</h2>
 
-            {/* Close Week */}
-            <div className="border-t border-zinc-800 pt-4 space-y-3">
-              <p className="text-sm text-zinc-400">
-                Week {data.weekNumber} reviewed. {data.completedThisWeek.length} actions completed.
-              </p>
-              <button className="w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md font-medium transition-colors">
-                ✓ Close Week {data.weekNumber}
-              </button>
+            <div className="space-y-5">
+              <div>
+                <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase mb-3">Your one commitment for next week</p>
+                <p className="text-[14px] text-[var(--svaas-brown-light)] mb-4">One thing. The most important thing. Not three things. One.</p>
+                <input
+                  value={nextWeekCommitment}
+                  onChange={e => setNextWeekCommitment(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && nextWeekCommitment.trim()) { setWeeklyCommitment(nextWeekCommitment.trim()); } }}
+                  placeholder="e.g., Get LLP registration filed"
+                  className="w-full px-4 py-3 bg-white border border-[var(--svaas-sand)]/40 rounded-lg text-[16px] text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none focus:border-[var(--svaas-brown)]/40"
+                />
+                {nextWeekCommitment.trim() && !state.weeklyCommitment?.text && (
+                  <button
+                    onClick={() => setWeeklyCommitment(nextWeekCommitment.trim())}
+                    className="mt-4 px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[14px] rounded-lg font-medium"
+                  >
+                    Commit
+                  </button>
+                )}
+                {state.weeklyCommitment && state.weeklyCommitment.weekNumber === data.weekNumber && (
+                  <p className="text-[14px] text-[var(--svaas-olive)] mt-4">&#10003; Set: &ldquo;{state.weeklyCommitment.text}&rdquo;</p>
+                )}
+              </div>
+
+              <hr className="border-[var(--svaas-sand)]/30" />
+
+              {weekClosed ? (
+                <div className="text-center py-6">
+                  <p className="text-[18px] text-[var(--svaas-olive)] font-medium font-[family-name:var(--font-serif)]">&#10003; Week {data.weekNumber} closed.</p>
+                  <p className="text-[14px] text-[var(--svaas-brown-light)] mt-2">Review saved to venture memory.</p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-[16px] text-[var(--svaas-brown)]">
+                    Week {data.weekNumber} reviewed. {data.completedThisWeek.length} actions completed.
+                  </p>
+                  <button
+                    onClick={() => { closeWeek(); setWeekClosed(true); }}
+                    className="w-full mt-3 px-5 py-3 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[16px] rounded-lg font-medium"
+                  >
+                    Close Week {data.weekNumber}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* Navigation */}
-      <div className="flex items-center justify-between">
+      {/* Continue Reading navigation */}
+      <div className="flex items-center justify-between pt-6 border-t border-[var(--svaas-sand)]/30">
         <button
-          onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-          disabled={currentStep === 1}
-          className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed text-zinc-300 text-sm rounded-md transition-colors"
+          onClick={goPrev}
+          disabled={currentSection === 0}
+          className="px-5 py-2.5 border border-[var(--svaas-sand)]/40 text-[var(--svaas-brown)] text-[14px] rounded-lg font-medium disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          ← Previous
+          Previous
         </button>
-        <span className="text-xs text-zinc-600">
-          {STEPS.map(s => s.time.replace(' min', '')).reduce((sum, t) => sum + parseInt(t), 0)} min total
-        </span>
+        <p className="text-[13px] text-[var(--svaas-brown-light)]">{currentSection + 1} of {SECTIONS.length}</p>
         <button
-          onClick={() => setCurrentStep(Math.min(7, currentStep + 1))}
-          disabled={currentStep === 7}
-          className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed text-zinc-300 text-sm rounded-md transition-colors"
+          onClick={goNext}
+          disabled={currentSection === SECTIONS.length - 1}
+          className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[14px] rounded-lg font-medium disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          Next →
+          Continue reading
         </button>
       </div>
+
+      <AppNav />
     </div>
   );
 }

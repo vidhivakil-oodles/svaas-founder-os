@@ -3,190 +3,218 @@
 import { useAppState } from '@/lib/state-provider';
 import { getDayNumber, getWeekNumber, VENTURE_CONFIG } from '@/lib/venture-config';
 import Link from 'next/link';
-import { useState } from 'react';
+import { AppNav } from '@/components/shared/nav';
 
-const PHASES = [
-  { name: 'Foundation', phases: ['P0'] },
-  { name: 'Product', phases: ['P1', 'P2'] },
-  { name: 'Validation', phases: ['P3', 'P4'] },
-  { name: 'Launch', phases: ['P5'] },
-  { name: 'Scale', phases: ['P6', 'P7', 'P8'] },
-];
+function getConsequence(task: any) {
+  if (task.department === 'LEGAL') return 'LLP, trademark, bank account all wait.';
+  if (task.department === 'COMPLIANCE' && task.category === 'QP') return 'No QP, no licence, no launch.';
+  if (task.department === 'COMPLIANCE') return 'Compliance chain stalls.';
+  if (task.department === 'PRODUCT' && task.category === 'Formula') return 'Cannot produce or sell without locked formula.';
+  if (task.department === 'PRODUCT') return 'Product development blocked.';
+  if (task.department === 'PACKAGING') return 'Customer-facing work delayed.';
+  if (task.department === 'SUPPLY CHAIN') return 'Production stops without ingredients.';
+  if (task.notesDependencies) return task.notesDependencies.slice(0, 100);
+  return 'Launch timeline extends.';
+}
 
-function getCurrentPhaseIndex(tasks: any[]) {
-  for (let i = 0; i < PHASES.length; i++) {
-    const phaseTasks = tasks.filter((t: any) => PHASES[i].phases.includes(t.phase) && t.priority === 'CRITICAL');
-    if (phaseTasks.some((t: any) => t.status !== 'done')) return i;
-  }
-  return PHASES.length - 1;
+function getWhy(task: any, state: any) {
+  const stream = state.streams.find((s: any) => s.id === task.streamId);
+  const streamName = stream?.name || task.department;
+  if (task.priority === 'CRITICAL') return `On ${streamName} critical path.`;
+  if (task.notesDependencies) return task.notesDependencies.slice(0, 100);
+  return `Part of ${streamName}.`;
+}
+
+function getIfDone(task: any, state: any) {
+  const stream = state.streams.find((s: any) => s.id === task.streamId);
+  const streamName = stream?.name || task.department;
+  const remaining = state.tasks.filter((t: any) => t.streamId === task.streamId && t.status !== 'done' && t.id !== task.id).length;
+  if (remaining <= 3 && remaining > 0) return `${streamName}: only ${remaining} left.`;
+  if (task.priority === 'CRITICAL') return `${streamName} critical path advances.`;
+  return `${streamName} moves forward.`;
 }
 
 export default function HomePage() {
-  const { state, isLoaded, markTaskDone, acceptDecisionDefault } = useAppState();
-  const [showMore, setShowMore] = useState(false);
-  const [scheduledConvo, setScheduledConvo] = useState(false);
+  const { state, isLoaded, markTaskDone, commitTask, acceptDecisionDefault } = useAppState();
   const dayNumber = getDayNumber();
   const weekNumber = getWeekNumber();
 
-  if (!isLoaded) return <div className="flex items-center justify-center h-64 text-zinc-500">Loading...</div>;
+  if (!isLoaded) return <div className="flex items-center justify-center h-64 text-[var(--svaas-brown-light)]">Loading...</div>;
 
-  const currentPhaseIdx = getCurrentPhaseIndex(state.tasks);
   const daysToLaunch = VENTURE_CONFIG.launchTargetDays - dayNumber;
-  const overdue = state.tasks.filter((t: any) => t.status === 'not_started' && t.priority === 'CRITICAL' && t.dayRangeEnd && dayNumber > t.dayRangeEnd);
-  const blocked = state.tasks.filter((t: any) => t.status === 'blocked');
-  const doneTasks = state.tasks.filter((t: any) => t.status === 'done').length;
 
-  const bottleneckTask = (() => {
-    if (blocked.length > 0) return blocked.find((t: any) => t.priority === 'CRITICAL') || blocked[0];
-    if (overdue.length > 0) return overdue[0];
-    return null;
-  })();
+  const commitment = state.tasks.find((t: any) => t.status === 'committed_today');
+  const suggestedTask = !commitment
+    ? state.tasks
+        .filter((t: any) => t.status === 'not_started' && !t.blockedReason && t.priority === 'CRITICAL')
+        .sort((a: any, b: any) => (a.dayRangeEnd || 999) - (b.dayRangeEnd || 999))[0]
+    : null;
 
-  const topDecision = state.decisions.find((d: any) => d.status === 'pending');
+  const blockers = [
+    ...state.tasks.filter((t: any) => t.status === 'blocked').map((t: any) => ({
+      ...t, blockerType: 'blocked' as const,
+      leverage: (t.priority === 'CRITICAL' ? 10 : t.priority === 'HIGH' ? 6 : 3) + (t.downstreamCount || 0) * 2,
+    })),
+    ...state.tasks.filter((t: any) => t.status === 'not_started' && t.priority === 'CRITICAL' && t.dayRangeEnd && dayNumber > t.dayRangeEnd).map((t: any) => ({
+      ...t, blockerType: 'overdue' as const,
+      leverage: 10 + (dayNumber - (t.dayRangeEnd || 0)) + (t.downstreamCount || 0) * 2,
+    })),
+  ].sort((a, b) => b.leverage - a.leverage);
+  const biggestBlocker = blockers[0] || null;
 
-  const peopleKeywords = ['Confirm', 'Engage', 'Contact', 'Visit', 'Call', 'Meet', 'Schedule'];
-  const conversation = state.tasks.find((t: any) =>
-    t.status === 'not_started' && !t.blockedReason && peopleKeywords.some((k: string) => t.title.includes(k))
-  );
+  const topDecision = state.decisions
+    .filter((d: any) => d.status === 'pending')
+    .sort((a: any, b: any) => {
+      const aL = (a.impactScore || 0) * Math.max(1, a.streamsAffected || 1) + (a.tasksAffected || 0) * 2;
+      const bL = (b.impactScore || 0) * Math.max(1, b.streamsAffected || 1) + (b.tasksAffected || 0) * 2;
+      return bL - aL;
+    })[0] || null;
 
-  const topTask = state.tasks
-    .filter((t: any) => t.status === 'not_started' && !t.blockedReason && t.priority === 'CRITICAL')
-    .sort((a: any, b: any) => (a.dayRangeEnd || 999) - (b.dayRangeEnd || 999))[0];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const waitingOn = state.tasks.filter((t: any) => t.status === 'waiting_on');
+  const overdueWaiting = waitingOn
+    .map((t: any) => {
+      const daysLate = t.waitingOnDate
+        ? Math.max(0, Math.floor((today.getTime() - new Date(t.waitingOnDate).getTime()) / (1000 * 60 * 60 * 24)))
+        : 0;
+      return { ...t, daysLate, isOverdue: daysLate > 0 };
+    })
+    .filter((t: any) => t.isOverdue)
+    .sort((a: any, b: any) => b.daysLate - a.daysLate);
 
-  const nextMilestone = state.milestones.find((m: any) => m.status !== 'achieved');
-  const milestoneGatesRemaining = nextMilestone ? nextMilestone.gateCriteria.filter((g: any) => !g.met).length : 0;
+  const weekStart = new Date();
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  weekStart.setHours(0, 0, 0, 0);
+  const completedThisWeek = state.tasks.filter((t: any) => t.status === 'done' && t.completedAt && new Date(t.completedAt) >= weekStart).length;
+  const overdueCount = blockers.filter(b => b.blockerType === 'overdue').length;
+  const blockedCount = blockers.filter(b => b.blockerType === 'blocked').length;
 
-  const hasActivity = doneTasks > 0;
-  const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-  const thisWeekDone = state.tasks.filter((t: any) => t.completedAt && new Date(t.completedAt) >= weekStart).length;
+  const hasContent = commitment || suggestedTask || biggestBlocker || topDecision || overdueWaiting.length > 0;
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <div className="pt-4">
-        <p className="text-zinc-500 text-sm">Day {dayNumber} &bull; Week {weekNumber} &bull; {daysToLaunch}d to launch</p>
-        <h1 className="text-3xl font-bold text-zinc-100 mt-1">SVAAS</h1>
-      </div>
+    <div className="space-y-0">
+      {/* Masthead */}
+      <header className="pt-4 pb-8 flex items-baseline justify-between border-b border-[var(--svaas-sand)]/30">
+        <p className="text-[13px] text-[var(--svaas-brown-light)] tracking-wide">Day {dayNumber} · Week {weekNumber}</p>
+        <p className="text-[13px] text-[var(--svaas-brown-light)]">{daysToLaunch}d to launch</p>
+      </header>
 
-      {/* Timeline */}
-      <div className="flex items-center gap-1">
-        {PHASES.map((phase, i) => (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1">
-            <div className={`w-full h-2 rounded-full ${i < currentPhaseIdx ? 'bg-emerald-600' : i === currentPhaseIdx ? 'bg-amber-500' : 'bg-zinc-800'}`} />
-            <span className={`text-xs ${i === currentPhaseIdx ? 'text-amber-400 font-medium' : i < currentPhaseIdx ? 'text-emerald-500' : 'text-zinc-600'}`}>{phase.name}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* ACTIONABLE CEO BRIEF */}
-      <div className="space-y-3">
-
-        {/* Bottleneck — actionable */}
-        {bottleneckTask && (
-          <div className="border border-red-900/40 bg-red-950/10 rounded-xl p-4 space-y-3">
-            <p className="text-xs text-red-400 uppercase tracking-wide font-medium">Bottleneck</p>
-            <p className="text-zinc-100 font-medium">{bottleneckTask.title}</p>
-            <p className="text-xs text-zinc-500">{bottleneckTask.blockedReason || `${dayNumber - (bottleneckTask.dayRangeEnd || 0)}d overdue`}</p>
-            <p className="text-xs text-red-400/70">If ignored → downstream work stays frozen.</p>
-            <div className="flex gap-2">
-              {bottleneckTask.status !== 'blocked' && (
-                <button onClick={() => markTaskDone(bottleneckTask.id)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-medium">✓ Resolved</button>
-              )}
-              <Link href="/warroom" className="px-3 py-1.5 border border-red-900/40 text-red-400 text-xs rounded-lg hover:border-red-700/40">See all blocked →</Link>
-            </div>
-          </div>
-        )}
-
-        {/* Decision — one-click resolve */}
-        {topDecision && (
-          <div className="border border-amber-900/40 bg-amber-950/10 rounded-xl p-4 space-y-3">
-            <p className="text-xs text-amber-400 uppercase tracking-wide font-medium">Decision Needed</p>
-            <p className="text-zinc-100 font-medium">{topDecision.title}</p>
-            <p className="text-xs text-zinc-500">Default: {topDecision.defaultOption}</p>
-            <p className="text-xs text-amber-400/70">If ignored → dependent work cannot start until decided.</p>
-            <div className="flex gap-2">
-              <button onClick={() => acceptDecisionDefault(topDecision.id)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-medium">Accept: {topDecision.defaultOption}</button>
-              <Link href="/decisions" className="px-3 py-1.5 border border-amber-900/40 text-amber-400 text-xs rounded-lg hover:border-amber-700/40">See options →</Link>
-            </div>
-          </div>
-        )}
-
-        {/* Conversation — mark scheduled */}
-        {conversation && !scheduledConvo && (
-          <div className="border border-blue-900/40 bg-blue-950/10 rounded-xl p-4 space-y-3">
-            <p className="text-xs text-blue-400 uppercase tracking-wide font-medium">Conversation Needed</p>
-            <p className="text-zinc-100 font-medium">{conversation.title}</p>
-            <p className="text-xs text-zinc-500">{conversation.owner}</p>
-            <p className="text-xs text-blue-400/70">If ignored → this person-dependent task stays stuck.</p>
-            <div className="flex gap-2">
-              <button onClick={() => { markTaskDone(conversation.id); }} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-medium">✓ Done</button>
-              <button onClick={() => setScheduledConvo(true)} className="px-3 py-1.5 border border-blue-900/40 text-blue-400 text-xs rounded-lg hover:border-blue-700/40">Scheduled for later</button>
-            </div>
-          </div>
-        )}
-        {scheduledConvo && (
-          <div className="border border-blue-900/30 bg-blue-950/5 rounded-xl p-4">
-            <p className="text-xs text-blue-400">✓ Conversation scheduled. Follow up tomorrow.</p>
-          </div>
-        )}
-
-        {/* Top Task — start/complete */}
-        {topTask && topTask.id !== conversation?.id && topTask.id !== bottleneckTask?.id && (
-          <div className="border border-zinc-800 bg-zinc-900/30 rounded-xl p-4 space-y-3">
-            <p className="text-xs text-zinc-400 uppercase tracking-wide font-medium">Top Task</p>
-            <p className="text-zinc-100 font-medium">{topTask.title}</p>
-            <p className="text-xs text-zinc-500">{topTask.owner} &bull; Due Day {topTask.dayRangeEnd || '—'}</p>
-            <p className="text-xs text-zinc-500">If ignored → {topTask.notesDependencies ? topTask.notesDependencies.slice(0, 80) : 'Launch timeline extends.'}</p>
-            <div className="flex gap-2">
-              <button onClick={() => markTaskDone(topTask.id)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-medium">✓ Complete</button>
-              <Link href="/today" className="px-3 py-1.5 border border-zinc-700 text-zinc-400 text-xs rounded-lg hover:border-zinc-500">See all actions →</Link>
-            </div>
-          </div>
-        )}
-
-        {/* Opportunity — show what's needed */}
-        {nextMilestone && (
-          <Link href="/milestones" className="block border border-emerald-900/40 bg-emerald-950/10 rounded-xl p-4 space-y-2 hover:border-emerald-700/40 transition-colors">
-            <p className="text-xs text-emerald-400 uppercase tracking-wide font-medium">Opportunity</p>
-            <p className="text-zinc-100 font-medium">Reach &quot;{nextMilestone.title}&quot;</p>
-            <p className="text-xs text-zinc-500">{milestoneGatesRemaining} requirements remaining &bull; {Math.max(0, nextMilestone.dayTarget - dayNumber)}d left</p>
-            <p className="text-xs text-emerald-400/70">See exact requirements →</p>
-          </Link>
-        )}
-      </div>
-
-      {/* Momentum or Streak Start */}
-      {hasActivity ? (
-        <div className="border border-zinc-800 rounded-xl p-4">
-          <div className="grid grid-cols-2 gap-3 text-center">
-            <div><div className="text-xl font-bold text-emerald-400">{thisWeekDone}</div><div className="text-xs text-zinc-600">This week</div></div>
-            <div><div className="text-xl font-bold text-zinc-200">{doneTasks}</div><div className="text-xs text-zinc-600">Total done</div></div>
-          </div>
-        </div>
-      ) : (
-        <div className="border border-zinc-800 rounded-xl p-4 text-center">
-          <p className="text-zinc-500 text-sm">Start your streak today.</p>
-          <Link href="/today" className="text-emerald-400 text-sm font-medium hover:text-emerald-300">Complete your first task →</Link>
+      {/* Empty state */}
+      {!hasContent && (
+        <div className="py-20 text-center">
+          <p className="text-[24px] text-[var(--svaas-brown-dark)] font-[family-name:var(--font-serif)]">All clear.</p>
+          <p className="text-[14px] text-[var(--svaas-brown-light)] mt-3">Your venture is on track.</p>
+          <Link href="/today" className="inline-block mt-8 px-6 py-3 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[14px] rounded-lg font-medium">Open Today</Link>
         </div>
       )}
 
-      {/* Primary Nav */}
-      <nav className="flex gap-2 pt-4 border-t border-zinc-800">
-        <Link href="/today" className="flex-1 text-center py-3 rounded-xl border-2 border-emerald-800/50 bg-emerald-950/20 hover:border-emerald-700/50 text-sm text-emerald-400 font-medium transition-colors">Today</Link>
-        <Link href="/decisions" className="flex-1 text-center py-3 rounded-xl border border-zinc-800 hover:border-zinc-600 text-sm text-zinc-400 transition-colors">Decisions</Link>
-        <Link href="/review" className="flex-1 text-center py-3 rounded-xl border border-zinc-800 hover:border-zinc-600 text-sm text-zinc-400 transition-colors">Review</Link>
-      </nav>
-
-      {/* More */}
-      <div className="text-center">
-        <button onClick={() => setShowMore(!showMore)} className="text-xs text-zinc-600 hover:text-zinc-400">{showMore ? 'Less ↑' : 'More ↓'}</button>
-        {showMore && (
-          <div className="flex flex-wrap gap-2 justify-center mt-3">
-            <Link href="/warroom" className="px-3 py-1.5 rounded-lg border border-red-900/40 text-xs text-red-400">War Room</Link>
-            <Link href="/milestones" className="px-3 py-1.5 rounded-lg border border-zinc-800 text-xs text-zinc-500">Milestones</Link>
-            <Link href="/admin" className="px-3 py-1.5 rounded-lg border border-zinc-800 text-xs text-zinc-500">Admin</Link>
+      {/* HERO - Today's Commitment */}
+      {(commitment || suggestedTask) && (
+        <section className="pt-12 pb-12">
+          <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase mb-6">Your focus today</p>
+          <h1 className="text-[40px] font-semibold text-[var(--svaas-brown-dark)] leading-[1.1] tracking-[-0.01em] font-[family-name:var(--font-serif)]">
+            {commitment?.title || suggestedTask?.title}
+          </h1>
+          <div className="mt-6 space-y-1.5 text-[16px] leading-relaxed">
+            <p className="text-[var(--svaas-brown)]">{getWhy((commitment || suggestedTask)!, state)}</p>
+            <p className="text-[var(--svaas-olive)]">If done: {getIfDone((commitment || suggestedTask)!, state)}</p>
+            <p className="text-[var(--svaas-clay)]">If ignored: {getConsequence((commitment || suggestedTask)!)}</p>
           </div>
-        )}
-      </div>
+          <div className="mt-8">
+            {commitment ? (
+              <button onClick={() => markTaskDone(commitment.id)} className="px-7 py-3 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[16px] rounded-lg font-medium tracking-wide">Done</button>
+            ) : (
+              <div className="flex items-center gap-5">
+                <button onClick={() => commitTask(suggestedTask!.id)} className="px-7 py-3 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[16px] rounded-lg font-medium tracking-wide">Commit today</button>
+                <Link href="/today" className="text-[14px] text-[var(--svaas-brown-light)]">Choose different</Link>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* SECONDARY BRIEFING STRIPS */}
+      {(biggestBlocker || topDecision || overdueWaiting.length > 0) && (
+        <div className="border-t border-[var(--svaas-sand)]/40 pt-10 space-y-0">
+          {/* Needs Attention strip - Drishti intelligence */}
+          {biggestBlocker && (
+            <div className="flex gap-4 py-6 border-b border-[var(--svaas-sand)]/25">
+              <div className="w-0.5 self-stretch bg-[var(--svaas-clay)] shrink-0 rounded-full" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-clay)] uppercase">Drishti sees</p>
+                <p className="text-[14px] text-[var(--svaas-brown)] mt-3 leading-relaxed">
+                  {blockedCount > 0 && <><span className="font-semibold text-[var(--svaas-brown-dark)]">{blockedCount}</span> blocked</>}
+                  {blockedCount > 0 && (state.decisions.filter((d: any) => d.status === 'pending').length > 0 || overdueCount > 0) && <> · </>}
+                  {state.decisions.filter((d: any) => d.status === 'pending').length > 0 && <><span className="font-semibold text-[var(--svaas-brown-dark)]">{state.decisions.filter((d: any) => d.status === 'pending').length}</span> decisions pending</>}
+                  {state.decisions.filter((d: any) => d.status === 'pending').length > 0 && overdueCount > 0 && <> · </>}
+                  {overdueCount > 0 && <><span className="font-semibold text-[var(--svaas-brown-dark)]">{overdueCount}</span> overdue</>}
+                </p>
+                <div className="mt-4">
+                  <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Largest blocker</p>
+                  <p className="text-[20px] font-medium text-[var(--svaas-brown-dark)] mt-1.5 leading-snug font-[family-name:var(--font-serif)]">{biggestBlocker.title}</p>
+                  <p className="text-[14px] text-[var(--svaas-brown)] mt-1.5">
+                    {biggestBlocker.blockerType === 'blocked'
+                      ? biggestBlocker.blockedReason
+                      : `${dayNumber - (biggestBlocker.dayRangeEnd || 0)}d overdue`}
+                  </p>
+                </div>
+              </div>
+              <Link href="/warroom" className="text-[13px] text-[var(--svaas-clay)] font-medium self-start mt-1 shrink-0">
+                War Room →
+              </Link>
+            </div>
+          )}
+
+          {/* Decision strip */}
+          {topDecision && (
+            <div className="flex gap-4 py-6 border-b border-[var(--svaas-sand)]/25">
+              <div className="w-0.5 self-stretch bg-[var(--svaas-olive)] shrink-0 rounded-full" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Requires your decision</p>
+                <p className="text-[20px] font-medium text-[var(--svaas-brown-dark)] mt-2 leading-snug font-[family-name:var(--font-serif)]">{topDecision.title}</p>
+                <p className="text-[14px] text-[var(--svaas-olive)] mt-1.5">Drishti recommends: {topDecision.defaultOption}</p>
+                <div className="mt-4">
+                  <button onClick={() => acceptDecisionDefault(topDecision.id)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[14px] rounded-lg font-medium">Accept</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Waiting strip */}
+          {overdueWaiting.length > 0 && (
+            <div className="flex gap-4 py-6 border-b border-[var(--svaas-sand)]/25">
+              <div className="w-0.5 self-stretch bg-[var(--svaas-sand)] shrink-0 rounded-full" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-light)] uppercase mb-4">Waiting - overdue</p>
+                {overdueWaiting.slice(0, 3).map((t: any) => (
+                  <div key={t.id} className="flex items-center justify-between py-2">
+                    <div className="min-w-0">
+                      <span className="text-[14px] text-[var(--svaas-brown-dark)]">{t.title}</span>
+                      <span className="text-[13px] text-[var(--svaas-brown-light)] ml-2">{t.waitingOnPerson} · {t.daysLate}d late</span>
+                    </div>
+                    <button onClick={() => markTaskDone(t.id)} className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg shrink-0 ml-3">Received</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* FOOTER - Week pulse */}
+      <footer className="flex items-center justify-between text-[13px] text-[var(--svaas-brown-light)] pt-10 pb-4">
+        <p>
+          This week:
+          {completedThisWeek > 0 && <> <span className="font-semibold">{completedThisWeek}</span> done</>}
+          {overdueCount > 0 && <> · <span className="font-semibold">{overdueCount}</span> overdue</>}
+          {blockedCount > 0 && <> · <span className="font-semibold">{blockedCount}</span> blocked</>}
+          {waitingOn.length > 0 && <> · <span className="font-semibold">{waitingOn.length}</span> waiting</>}
+          {completedThisWeek === 0 && overdueCount === 0 && blockedCount === 0 && waitingOn.length === 0 && ' No activity yet.'}
+        </p>
+        <Link href="/review" className="font-medium text-[var(--svaas-brown)]">Review →</Link>
+      </footer>
+
+      <AppNav />
     </div>
   );
 }

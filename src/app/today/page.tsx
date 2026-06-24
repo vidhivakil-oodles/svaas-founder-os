@@ -4,10 +4,12 @@ import { useAppState } from '@/lib/state-provider';
 import { getDayNumber, getWeekNumber, VENTURE_CONFIG } from '@/lib/venture-config';
 import Link from 'next/link';
 import { useState } from 'react';
+import { AppNav } from '@/components/shared/nav';
+import { KebabMenu } from '@/components/shared/kebab-menu';
 
 function getConsequence(task: any) {
   if (task.department === 'LEGAL') return 'LLP, trademark, bank account all wait.';
-  if (task.department === 'COMPLIANCE' && task.category === 'QP') return 'No QP → no licence → no launch.';
+  if (task.department === 'COMPLIANCE' && task.category === 'QP') return 'No QP, no licence, no launch.';
   if (task.department === 'COMPLIANCE') return 'Compliance chain stalls.';
   if (task.department === 'PRODUCT' && task.category === 'Formula') return 'Cannot produce or sell without locked formula.';
   if (task.department === 'PRODUCT') return 'Product development blocked.';
@@ -17,16 +19,40 @@ function getConsequence(task: any) {
   return 'Launch timeline extends.';
 }
 
+function getWhy(task: any) {
+  if (task.priority === 'CRITICAL') return 'Critical path item. Everything downstream waits.';
+  if (task.department === 'LEGAL') return 'Legal foundation enables all other streams.';
+  if (task.department === 'COMPLIANCE') return 'Required for licence and launch.';
+  if (task.notesDependencies) return task.notesDependencies.slice(0, 80);
+  return 'Moves your venture forward.';
+}
+
+function getDaysOverdueWaiting(task: any): number {
+  if (!task.waitingOnDate) return 0;
+  const expected = new Date(task.waitingOnDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  expected.setHours(0, 0, 0, 0);
+  return Math.max(0, Math.floor((today.getTime() - expected.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
 export default function TodayPage() {
-  const { state, markTaskDone, startTask, commitTask, waitingOnTask, blockTask, deferTask } = useAppState();
+  const { state, markTaskDone, startTask, commitTask, waitingOnTask, blockTask, deferTask, cancelTask, undoLastDone, addManualNote, addFounderTask } = useAppState();
   const [wins, setWins] = useState<string[]>([]);
   const [showWaitingForm, setShowWaitingForm] = useState<string | null>(null);
   const [showDeferForm, setShowDeferForm] = useState<string | null>(null);
+  const [showBlockForm, setShowBlockForm] = useState<string | null>(null);
+  const [blockReason, setBlockReason] = useState('');
   const [waitPerson, setWaitPerson] = useState('');
   const [waitDate, setWaitDate] = useState('');
   const [waitNotes, setWaitNotes] = useState('');
   const [deferReason, setDeferReason] = useState('');
   const [deferDate, setDeferDate] = useState('');
+  const [undoAvailable, setUndoAvailable] = useState(false);
+  const [quickNote, setQuickNote] = useState('');
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [showEverythingElse, setShowEverythingElse] = useState(false);
 
   const dayNumber = getDayNumber();
   const weekNumber = getWeekNumber();
@@ -35,8 +61,10 @@ export default function TodayPage() {
   // Sections
   const committed = state.tasks.filter((t: any) => t.status === 'committed_today');
   const waitingOn = state.tasks.filter((t: any) => t.status === 'waiting_on');
-  const blocked = state.tasks.filter((t: any) => t.status === 'blocked');
-  const overdue = state.tasks.filter((t: any) => t.status === 'not_started' && t.priority === 'CRITICAL' && t.dayRangeEnd && dayNumber > t.dayRangeEnd);
+
+  const overdueWaiting = waitingOn
+    .filter((t: any) => t.waitingOnDate && getDaysOverdueWaiting(t) > 0)
+    .sort((a: any, b: any) => getDaysOverdueWaiting(b) - getDaysOverdueWaiting(a));
 
   const actionable = state.tasks
     .filter((t: any) => t.status === 'not_started' && !t.blockedReason)
@@ -45,16 +73,43 @@ export default function TodayPage() {
       const pDiff = (pri[b.priority] || 0) - (pri[a.priority] || 0);
       if (pDiff !== 0) return pDiff;
       return (a.dayRangeEnd || 999) - (b.dayRangeEnd || 999);
-    })
-    .slice(0, 5);
+    });
+
+  // Focus Now: committed + up to 3 total (prioritized)
+  const focusNow = [...committed, ...actionable.slice(0, Math.max(0, 3 - committed.length))];
+  // Up Next: next 4 after focus
+  const upNext = actionable.slice(Math.max(0, 3 - committed.length), Math.max(0, 3 - committed.length) + 4);
+  // Everything Else: the rest
+  const everythingElse = actionable.slice(Math.max(0, 3 - committed.length) + 4);
 
   function handleDone(task: any) {
     markTaskDone(task.id);
-    setWins(prev => [...prev, `✓ ${task.title} — ${task.department} stream advances.`]);
+    const stream = state.streams.find((s: any) => s.id === task.streamId);
+    const streamName = stream?.name || task.department;
+    const remaining = state.tasks.filter((t: any) => t.streamId === task.streamId && t.status !== 'done' && t.id !== task.id).length;
+    let impact = `${streamName} advances.`;
+    if (task.priority === 'CRITICAL') impact = `Critical path - ${streamName} moves.`;
+    if (remaining <= 3 && remaining > 0) impact = `${streamName}: only ${remaining} left!`;
+    setWins(prev => [...prev, `${task.title} - ${impact}`]);
+    setUndoAvailable(true);
+    setTimeout(() => setUndoAvailable(false), 3000);
+  }
+
+  function handleUndo() {
+    undoLastDone();
+    setWins(prev => prev.slice(0, -1));
+    setUndoAvailable(false);
+  }
+
+  function handleBlock(taskId: string) {
+    if (!blockReason.trim()) return;
+    blockTask(taskId, blockReason.trim());
+    setShowBlockForm(null);
+    setBlockReason('');
   }
 
   function handleWaitingOn(taskId: string) {
-    if (!waitPerson) return;
+    if (!waitPerson.trim()) return;
     waitingOnTask(taskId, waitPerson, waitDate, waitNotes);
     setShowWaitingForm(null);
     setWaitPerson(''); setWaitDate(''); setWaitNotes('');
@@ -62,141 +117,261 @@ export default function TodayPage() {
 
   function handleDefer(taskId: string) {
     if (!deferReason) return;
-    deferTask(taskId, deferReason, deferDate);
+    const resolvedDate = deferDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    deferTask(taskId, deferReason, resolvedDate);
     setShowDeferForm(null);
     setDeferReason(''); setDeferDate('');
   }
 
+  function handleQuickNote() {
+    if (!quickNote.trim()) return;
+    addManualNote(quickNote.trim());
+    setQuickNote('');
+  }
+
+  function handleAddTask() {
+    if (!newTaskTitle.trim()) return;
+    addFounderTask(newTaskTitle.trim());
+    setNewTaskTitle('');
+    setShowAddTask(false);
+  }
+
+  function getKebabActions(task: any) {
+    const actions = [];
+    if (task.status === 'not_started') {
+      actions.push({ label: 'Start', onClick: () => startTask(task.id) });
+    }
+    actions.push({ label: 'Waiting On...', onClick: () => setShowWaitingForm(task.id) });
+    actions.push({ label: 'Defer...', onClick: () => setShowDeferForm(task.id) });
+    actions.push({ label: 'Blocked...', onClick: () => setShowBlockForm(task.id) });
+    actions.push({ label: 'Cancel', onClick: () => cancelTask(task.id), destructive: true });
+    return actions;
+  }
+
+  function renderInlineForms(taskId: string) {
+    return (
+      <>
+        {showWaitingForm === taskId && (
+          <div className="border-t border-[var(--svaas-sand)]/30 pt-3 mt-3 space-y-2">
+            <input value={waitPerson} onChange={e => setWaitPerson(e.target.value)} placeholder="Who?" className="w-full px-3 py-2 bg-white border border-[var(--svaas-sand)]/40 rounded-lg text-[13px] text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" />
+            <input type="date" value={waitDate} onChange={e => setWaitDate(e.target.value)} className="w-full px-3 py-2 bg-white border border-[var(--svaas-sand)]/40 rounded-lg text-[13px] text-[var(--svaas-brown-dark)] focus:outline-none" />
+            <input value={waitNotes} onChange={e => setWaitNotes(e.target.value)} placeholder="Notes (optional)" className="w-full px-3 py-2 bg-white border border-[var(--svaas-sand)]/40 rounded-lg text-[13px] text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" />
+            <div className="flex gap-2">
+              <button onClick={() => handleWaitingOn(taskId)} disabled={!waitPerson.trim()} className="px-3 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg disabled:opacity-30">Save</button>
+              <button onClick={() => setShowWaitingForm(null)} className="px-3 py-2 text-[var(--svaas-brown-light)] text-[13px]">Cancel</button>
+            </div>
+          </div>
+        )}
+        {showBlockForm === taskId && (
+          <div className="border-t border-[var(--svaas-sand)]/30 pt-3 mt-3 space-y-2">
+            <input value={blockReason} onChange={e => setBlockReason(e.target.value)} placeholder="What is blocking this?" className="w-full px-3 py-2 bg-white border border-[var(--svaas-sand)]/40 rounded-lg text-[13px] text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" onKeyDown={e => e.key === 'Enter' && handleBlock(taskId)} autoFocus />
+            <div className="flex gap-2">
+              <button onClick={() => handleBlock(taskId)} disabled={!blockReason.trim()} className="px-3 py-2 bg-[var(--svaas-clay)] text-white text-[13px] rounded-lg disabled:opacity-30">Block</button>
+              <button onClick={() => { setShowBlockForm(null); setBlockReason(''); }} className="px-3 py-2 text-[var(--svaas-brown-light)] text-[13px]">Cancel</button>
+            </div>
+          </div>
+        )}
+        {showDeferForm === taskId && (
+          <div className="border-t border-[var(--svaas-sand)]/30 pt-3 mt-3 space-y-2">
+            <input value={deferReason} onChange={e => setDeferReason(e.target.value)} placeholder="Why defer?" className="w-full px-3 py-2 bg-white border border-[var(--svaas-sand)]/40 rounded-lg text-[13px] text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none" />
+            <input type="date" value={deferDate} onChange={e => setDeferDate(e.target.value)} className="w-full px-3 py-2 bg-white border border-[var(--svaas-sand)]/40 rounded-lg text-[13px] text-[var(--svaas-brown-dark)] focus:outline-none" />
+            <div className="flex gap-2">
+              <button onClick={() => handleDefer(taskId)} disabled={!deferReason.trim()} className="px-3 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg disabled:opacity-30">Defer</button>
+              <button onClick={() => setShowDeferForm(null)} className="px-3 py-2 text-[var(--svaas-brown-light)] text-[13px]">Cancel</button>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <div className="pt-2">
-        <p className="text-zinc-500 text-sm">Day {dayNumber} &bull; Week {weekNumber} &bull; {daysToLaunch}d to launch</p>
-        <h1 className="text-3xl font-bold text-zinc-100 mt-1">Good morning, Vidhi.</h1>
+    <div className="space-y-0">
+      {/* Header - editorial masthead */}
+      <header className="pt-4 pb-8 border-b border-[var(--svaas-sand)]/30">
+        <p className="text-[13px] text-[var(--svaas-brown-light)] tracking-wide">Day {dayNumber} · Week {weekNumber}</p>
+        <h1 className="text-[32px] font-medium text-[var(--svaas-brown-dark)] mt-2 font-[family-name:var(--font-serif)]">Good morning, Vidhi.</h1>
+        <p className="text-[13px] text-[var(--svaas-olive)] mt-1">Drishti briefing · Day {dayNumber} · {daysToLaunch}d to launch</p>
+      </header>
+
+      {/* Quick Note */}
+      <div className="py-5 border-b border-[var(--svaas-sand)]/20">
+        <div className="flex gap-2">
+          <input
+            value={quickNote}
+            onChange={e => setQuickNote(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleQuickNote()}
+            placeholder="Add a note..."
+            className="flex-1 px-4 py-2.5 bg-transparent border border-[var(--svaas-sand)]/40 rounded-lg text-[14px] text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none focus:border-[var(--svaas-brown)]/40"
+          />
+          {quickNote.trim() && (
+            <button onClick={handleQuickNote} className="px-4 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Add</button>
+          )}
+        </div>
       </div>
 
       {/* Wins */}
       {wins.length > 0 && (
-        <div className="border border-emerald-900/40 bg-emerald-950/10 rounded-xl p-4">
-          <p className="text-xs text-emerald-400 uppercase tracking-wide font-medium mb-2">Wins Today</p>
-          {wins.map((w, i) => <p key={i} className="text-sm text-emerald-300">{w}</p>)}
-        </div>
-      )}
-
-      {/* My Commitments Today */}
-      {committed.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="text-sm font-medium text-emerald-400 uppercase tracking-wide">My Commitments Today</h2>
-          {committed.map((t: any) => (
-            <div key={t.id} className="border-2 border-emerald-700/50 bg-emerald-950/20 rounded-xl p-4 flex items-center justify-between">
-              <div>
-                <p className="text-zinc-100 font-medium">{t.title}</p>
-                <p className="text-xs text-zinc-500">{t.department} &bull; {t.owner}</p>
+        <div className="py-5 border-b border-[var(--svaas-sand)]/20">
+          <div className="flex items-start gap-3">
+            <div className="w-0.5 self-stretch bg-[var(--svaas-olive)] shrink-0 rounded-full" />
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase">Done</p>
+                {undoAvailable && (
+                  <button onClick={handleUndo} className="text-[13px] text-[var(--svaas-brown-light)] hover:text-[var(--svaas-brown)]">Undo</button>
+                )}
               </div>
-              <button onClick={() => handleDone(t)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-medium">✓ Done</button>
+              {wins.map((w, i) => <p key={i} className="text-[14px] text-[var(--svaas-brown)]">{w}</p>)}
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Waiting On Others */}
-      {waitingOn.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="text-sm font-medium text-blue-400 uppercase tracking-wide">Waiting On Others</h2>
-          {waitingOn.map((t: any) => (
-            <div key={t.id} className="border border-blue-900/40 bg-blue-950/10 rounded-xl p-4">
-              <p className="text-zinc-100 font-medium">{t.title}</p>
-              <p className="text-xs text-zinc-500 mt-0.5">Waiting on: {t.waitingOnPerson} &bull; Expected: {t.waitingOnDate || '—'}</p>
-              {t.waitingOnNotes && <p className="text-xs text-zinc-600 mt-0.5">{t.waitingOnNotes}</p>}
-              <button onClick={() => handleDone(t)} className="mt-2 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs rounded-lg">Received → Done</button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Blocked */}
-      {blocked.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="text-sm font-medium text-red-400 uppercase tracking-wide">Blocked ({blocked.length})</h2>
-          {blocked.slice(0, 3).map((t: any) => (
-            <div key={t.id} className="border border-red-900/40 bg-red-950/10 rounded-xl p-3">
-              <p className="text-zinc-200 text-sm font-medium">{t.title}</p>
-              <p className="text-xs text-red-400">{t.blockedReason}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Overdue */}
-      {overdue.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="text-sm font-medium text-red-400 uppercase tracking-wide">Overdue ({overdue.length})</h2>
-          {overdue.slice(0, 3).map((t: any) => (
-            <div key={t.id} className="border border-red-900/40 bg-red-950/10 rounded-xl p-3 flex items-center justify-between">
-              <div>
-                <p className="text-zinc-200 text-sm font-medium">{t.title}</p>
-                <p className="text-xs text-zinc-500">{dayNumber - (t.dayRangeEnd || 0)}d overdue</p>
-              </div>
-              <button onClick={() => handleDone(t)} className="px-3 py-1.5 bg-emerald-700 text-white text-xs rounded-lg">Done</button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Top Actions */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wide">Do Next</h2>
-        {actionable.map((task: any) => (
-          <div key={task.id} className="border border-zinc-800 rounded-xl p-4 space-y-3 bg-zinc-900/20">
-            <div>
-              <h3 className="font-medium text-zinc-100">{task.title}</h3>
-              <p className="text-xs text-zinc-500 mt-0.5">{task.department} &bull; {task.owner}</p>
-              <p className="text-xs text-red-400/70 mt-1">If ignored → {getConsequence(task)}</p>
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => handleDone(task)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg font-medium">✓ Done</button>
-              <button onClick={() => commitTask(task.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg">Commit Today</button>
-              <button onClick={() => startTask(task.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg">Start</button>
-              <button onClick={() => setShowWaitingForm(task.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-blue-400 text-xs rounded-lg">Waiting On</button>
-              <button onClick={() => blockTask(task.id, 'Blocked')} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-red-400 text-xs rounded-lg">Blocked</button>
-              <button onClick={() => setShowDeferForm(task.id)} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-500 text-xs rounded-lg">Defer</button>
-            </div>
-
-            {/* Waiting On form */}
-            {showWaitingForm === task.id && (
-              <div className="border border-blue-900/40 rounded-lg p-3 space-y-2">
-                <input value={waitPerson} onChange={e => setWaitPerson(e.target.value)} placeholder="Who? (person/vendor)" className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
-                <input type="date" value={waitDate} onChange={e => setWaitDate(e.target.value)} className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
-                <input value={waitNotes} onChange={e => setWaitNotes(e.target.value)} placeholder="Notes (optional)" className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
-                <div className="flex gap-2">
-                  <button onClick={() => handleWaitingOn(task.id)} className="px-3 py-1.5 bg-blue-700 text-white text-xs rounded-lg">Save</button>
-                  <button onClick={() => setShowWaitingForm(null)} className="px-3 py-1.5 text-zinc-500 text-xs">Cancel</button>
-                </div>
-              </div>
-            )}
-
-            {/* Defer form */}
-            {showDeferForm === task.id && (
-              <div className="border border-zinc-700 rounded-lg p-3 space-y-2">
-                <input value={deferReason} onChange={e => setDeferReason(e.target.value)} placeholder="Why defer?" className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
-                <input type="date" value={deferDate} onChange={e => setDeferDate(e.target.value)} className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-200" />
-                <div className="flex gap-2">
-                  <button onClick={() => handleDefer(task.id)} className="px-3 py-1.5 bg-zinc-700 text-white text-xs rounded-lg">Defer</button>
-                  <button onClick={() => setShowDeferForm(null)} className="px-3 py-1.5 text-zinc-500 text-xs">Cancel</button>
-                </div>
-              </div>
-            )}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
-      {/* Nav */}
-      <nav className="flex gap-2 pt-4 border-t border-zinc-800">
-        <Link href="/" className="px-4 py-2 rounded-lg border border-zinc-800 hover:border-zinc-600 text-sm text-zinc-400">Home</Link>
-        <Link href="/decisions" className="px-4 py-2 rounded-lg border border-zinc-800 hover:border-zinc-600 text-sm text-zinc-400">Decisions</Link>
-        <Link href="/warroom" className="px-4 py-2 rounded-lg border border-red-900/40 hover:border-red-700/40 text-sm text-red-400">War Room</Link>
-      </nav>
+      {/* OVERDUE FOLLOW-UPS */}
+      {overdueWaiting.length > 0 && (
+        <section className="pt-8 pb-2">
+          <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-clay)] uppercase mb-4">Follow up ({overdueWaiting.length})</p>
+          <div className="divide-y divide-[var(--svaas-sand)]/20">
+            {overdueWaiting.map((t: any) => {
+              const daysOver = getDaysOverdueWaiting(t);
+              return (
+                <div key={t.id} className="py-3 flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[14px] font-medium text-[var(--svaas-brown-dark)]">{t.title}</span>
+                    <span className="text-[13px] text-[var(--svaas-clay)] ml-2">{t.waitingOnPerson} · {daysOver}d late</span>
+                  </div>
+                  <button onClick={() => handleDone(t)} className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium shrink-0">Received</button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* FOCUS NOW - Important, dominant section */}
+      {focusNow.length > 0 && (
+        <section className="pt-10">
+          <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-dark)] uppercase mb-6">Focus now</p>
+          <div className="space-y-0 divide-y divide-[var(--svaas-sand)]/30">
+            {focusNow.map((task: any) => {
+              const isCommitted = task.status === 'committed_today';
+              return (
+                <div key={task.id} className="py-7 first:pt-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      {isCommitted && <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-olive)] uppercase mb-2">Committed</p>}
+                      <h3 className="text-[20px] font-medium text-[var(--svaas-brown-dark)] leading-snug font-[family-name:var(--font-serif)]">{task.title}</h3>
+                      <div className="mt-3 space-y-1 text-[14px]">
+                        <p className="text-[var(--svaas-brown)]"><span className="text-[var(--svaas-brown-light)]">Why:</span> {getWhy(task)}</p>
+                        <p className="text-[var(--svaas-clay)]"><span className="text-[var(--svaas-brown-light)]">If ignored:</span> {getConsequence(task)}</p>
+                      </div>
+                    </div>
+                    <KebabMenu actions={getKebabActions(task)} />
+                  </div>
+
+                  <div className="flex items-center gap-3 mt-5">
+                    {isCommitted ? (
+                      <button onClick={() => handleDone(task)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[14px] rounded-lg font-medium">Done</button>
+                    ) : (
+                      <>
+                        <button onClick={() => commitTask(task.id)} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[14px] rounded-lg font-medium">Commit</button>
+                        <button onClick={() => handleDone(task)} className="text-[13px] text-[var(--svaas-brown-light)]">Done</button>
+                      </>
+                    )}
+                  </div>
+
+                  {renderInlineForms(task.id)}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* UP NEXT - Lighter, less prominent */}
+      {upNext.length > 0 && (
+        <section className="pt-8">
+          <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-light)] uppercase mb-3">Up next</p>
+          <div className="divide-y divide-[var(--svaas-sand)]/20">
+            {upNext.map((task: any) => (
+              <div key={task.id} className="py-3.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[16px] text-[var(--svaas-brown)] truncate">{task.title}</p>
+                    <p className="text-[13px] text-[var(--svaas-brown-light)] mt-0.5">{task.priority} · {task.department}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button onClick={() => commitTask(task.id)} className="px-4 py-2 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[13px] rounded-lg font-medium">Commit</button>
+                    <KebabMenu actions={getKebabActions(task)} />
+                  </div>
+                </div>
+                {renderInlineForms(task.id)}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* EVERYTHING ELSE - Nearly invisible, collapsed */}
+      {everythingElse.length > 0 && (
+        <section className="pt-8">
+          {!showEverythingElse ? (
+            <button
+              onClick={() => setShowEverythingElse(true)}
+              className="text-[13px] text-[var(--svaas-brown-light)]/60 hover:text-[var(--svaas-brown-light)] transition-colors"
+            >
+              {everythingElse.length} more tasks
+            </button>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[12px] font-semibold tracking-[0.12em] text-[var(--svaas-brown-light)]/60 uppercase">Backlog</p>
+                <button onClick={() => setShowEverythingElse(false)} className="text-[13px] text-[var(--svaas-brown-light)]">Collapse</button>
+              </div>
+              <div className="divide-y divide-[var(--svaas-sand)]/15">
+                {everythingElse.map((task: any) => (
+                  <div key={task.id} className="py-2.5 flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[14px] text-[var(--svaas-brown-light)] truncate">{task.title}</p>
+                    </div>
+                    <button onClick={() => commitTask(task.id)} className="px-3 py-1.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[12px] rounded-lg shrink-0">Commit</button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
+      {/* ADD TASK */}
+      <section className="pt-8 pb-4">
+        {showAddTask ? (
+          <div className="border-t border-[var(--svaas-sand)]/30 pt-4 space-y-3">
+            <input
+              value={newTaskTitle}
+              onChange={e => setNewTaskTitle(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAddTask()}
+              placeholder="What needs to happen?"
+              className="w-full px-4 py-2.5 bg-white border border-[var(--svaas-sand)]/40 rounded-lg text-[14px] text-[var(--svaas-brown-dark)] placeholder-[var(--svaas-brown-light)] focus:outline-none focus:border-[var(--svaas-brown)]/40"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button onClick={handleAddTask} disabled={!newTaskTitle.trim()} className="px-5 py-2.5 bg-[var(--svaas-brown-dark)] text-[var(--svaas-cream)] text-[14px] rounded-lg font-medium disabled:opacity-30">Add</button>
+              <button onClick={() => { setShowAddTask(false); setNewTaskTitle(''); }} className="text-[13px] text-[var(--svaas-brown-light)]">Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowAddTask(true)}
+            className="text-[13px] text-[var(--svaas-brown-light)] hover:text-[var(--svaas-brown)] transition-colors"
+          >
+            + Add task
+          </button>
+        )}
+      </section>
+
+      <AppNav />
     </div>
   );
 }
