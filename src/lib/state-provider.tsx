@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback, ReactNode 
 import { loadState, saveState, AppState, ActivityEntry, DailyEntry, ReviewEntry, DATA_VERSION } from './persistence';
 import { useToast } from './toast-provider';
 import { getWeekNumber } from './venture-config';
+import { syncTask, syncDecision, syncMilestone, syncWaitingOnItem } from './supabase/sync';
 import type { Task, Decision, Milestone, WaitingOn } from '@/types';
 
 interface StateContextValue {
@@ -61,6 +62,34 @@ export function StateProvider({ children }: { children: ReactNode }) {
       saveState(state);
     }
   }, [state, isLoaded]);
+
+  // Helper: sync a task to Supabase (fire-and-forget)
+  const syncTaskToSupabase = useCallback((taskId: string, currentState?: AppState) => {
+    const s = currentState || state;
+    const task = s.tasks.find(t => t.id === taskId);
+    if (task) syncTask(task);
+  }, [state]);
+
+  // Helper: sync a decision to Supabase (fire-and-forget)
+  const syncDecisionToSupabase = useCallback((decisionId: string, currentState?: AppState) => {
+    const s = currentState || state;
+    const decision = s.decisions.find(d => d.id === decisionId);
+    if (decision) syncDecision(decision);
+  }, [state]);
+
+  // Helper: sync a milestone to Supabase (fire-and-forget)
+  const syncMilestoneToSupabase = useCallback((milestoneId: string, currentState?: AppState) => {
+    const s = currentState || state;
+    const milestone = s.milestones.find(m => m.id === milestoneId);
+    if (milestone) syncMilestone(milestone);
+  }, [state]);
+
+  // Helper: sync a waiting-on item to Supabase (fire-and-forget)
+  const syncWaitingOnToSupabase = useCallback((itemId: string, currentState?: AppState) => {
+    const s = currentState || state;
+    const item = s.waitingOn.find(w => w.id === itemId);
+    if (item) syncWaitingOnItem(item);
+  }, [state]);
 
   // Helper: log activity
   const logActivity = useCallback((streamId: string | null, activityType: string, entityId: string | null) => {
@@ -178,6 +207,8 @@ export function StateProvider({ children }: { children: ReactNode }) {
 
       addJournalEntry('task_completed', task.title, taskId, task.streamId, { impacts });
       showToast(impactMsg, 'success');
+      // Sync to Supabase
+      setTimeout(() => syncTaskToSupabase(taskId), 0);
     }
   }, [state.tasks, state.streams, state.milestones, state.decisions, logActivity, updateStreamMovement, addJournalEntry, showToast]);
 
@@ -194,6 +225,8 @@ export function StateProvider({ children }: { children: ReactNode }) {
       logActivity(task.streamId, 'task_status_changed', taskId);
       addJournalEntry('task_blocked', `${task.title} — ${reason}`, taskId, task.streamId, { reason });
       showToast(`Blocked: ${task.title.slice(0, 40)}`, 'info');
+      // Sync to Supabase
+      setTimeout(() => syncTaskToSupabase(taskId), 0);
     }
   }, [state.tasks, logActivity, addJournalEntry, showToast]);
 
@@ -211,6 +244,8 @@ export function StateProvider({ children }: { children: ReactNode }) {
       updateStreamMovement(task.streamId);
       addJournalEntry('task_started', task.title, taskId, task.streamId);
       showToast(`Started: ${task.title.slice(0, 50)}`, 'success');
+      // Sync to Supabase
+      setTimeout(() => syncTaskToSupabase(taskId), 0);
     }
   }, [state.tasks, logActivity, updateStreamMovement, addJournalEntry, showToast]);
 
@@ -235,6 +270,8 @@ export function StateProvider({ children }: { children: ReactNode }) {
       logActivity(task.streamId, 'task_status_changed', taskId);
       addJournalEntry('task_committed', task.title, taskId, task.streamId);
       showToast(`Today's commitment: ${task.title.slice(0, 50)}`, 'success');
+      // Sync to Supabase
+      setTimeout(() => syncTaskToSupabase(taskId), 0);
     }
   }, [state.tasks, logActivity, addJournalEntry, showToast]);
 
@@ -251,6 +288,8 @@ export function StateProvider({ children }: { children: ReactNode }) {
       logActivity(task.streamId, 'task_status_changed', taskId);
       addJournalEntry('task_waiting_on', `${task.title} — waiting on ${person}`, taskId, task.streamId, { person, date, notes });
       showToast(`Waiting on ${person}: ${task.title.slice(0, 35)}`, 'info');
+      // Sync to Supabase
+      setTimeout(() => syncTaskToSupabase(taskId), 0);
     }
   }, [state.tasks, logActivity, addJournalEntry, showToast]);
 
@@ -267,6 +306,8 @@ export function StateProvider({ children }: { children: ReactNode }) {
       logActivity(task.streamId, 'task_status_changed', taskId);
       addJournalEntry('task_deferred', `${task.title} — ${reason}`, taskId, task.streamId, { reason, reviewDate });
       showToast(`Deferred: ${task.title.slice(0, 40)}${reviewDate ? ` (review ${reviewDate})` : ''}`, 'info');
+      // Sync to Supabase
+      setTimeout(() => syncTaskToSupabase(taskId), 0);
     }
   }, [state.tasks, logActivity, addJournalEntry, showToast]);
 
@@ -285,6 +326,8 @@ export function StateProvider({ children }: { children: ReactNode }) {
       logActivity(null, 'decision_made', decisionId);
       addJournalEntry('decision_made', `${decision.title} → ${decision.defaultOption}`, undefined, undefined, { option: decision.defaultOption, method: 'accepted_default' });
       showToast(`Decided: ${decision.title.slice(0, 40)}`, 'success');
+      // Sync to Supabase
+      setTimeout(() => syncDecisionToSupabase(decisionId), 0);
     }
   }, [state.decisions, logActivity, addJournalEntry, showToast]);
 
@@ -303,6 +346,8 @@ export function StateProvider({ children }: { children: ReactNode }) {
       logActivity(null, 'decision_made', decisionId);
       addJournalEntry('decision_made', `${decision.title} → ${option}`, undefined, undefined, { option, method: 'explicit_choice' });
       showToast(`Decided: ${option}`, 'success');
+      // Sync to Supabase
+      setTimeout(() => syncDecisionToSupabase(decisionId), 0);
     }
   }, [state.decisions, logActivity, addJournalEntry, showToast]);
 
@@ -324,6 +369,8 @@ export function StateProvider({ children }: { children: ReactNode }) {
         logActivity(null, 'decision_deferred', decisionId);
         addJournalEntry('decision_deferred', `${decision.title} — deferred 7 days`, undefined, undefined, { deferCount: decision.deferCount + 1 });
         showToast(`Deferred 7 days: ${decision.title.slice(0, 35)}`, 'info');
+        // Sync to Supabase
+        setTimeout(() => syncDecisionToSupabase(decisionId), 0);
       }
     }
   }, [state.decisions, logActivity, addJournalEntry, showToast]);
@@ -340,6 +387,8 @@ export function StateProvider({ children }: { children: ReactNode }) {
     logActivity(null, 'waiting_on_updated', id);
     addJournalEntry('waiting_on_received', item?.description || 'Item received', undefined, undefined, { person: item?.personOrVendor });
     showToast(`Received from ${item?.personOrVendor || 'vendor'}`, 'success');
+    // Sync to Supabase
+    setTimeout(() => syncWaitingOnToSupabase(id), 0);
   }, [state.waitingOn, logActivity, addJournalEntry, showToast]);
 
   // Milestone: Toggle Gate
@@ -369,6 +418,8 @@ export function StateProvider({ children }: { children: ReactNode }) {
         addJournalEntry('milestone_gate_met', `${milestone.title}: ${gate?.description}`, undefined, undefined, { milestoneId, gateIndex });
         showToast(`Gate met: ${gate?.description.slice(0, 40)}`, 'success');
       }
+      // Sync to Supabase
+      setTimeout(() => syncMilestoneToSupabase(milestoneId), 0);
     }
   }, [state.milestones, addJournalEntry, showToast]);
 
@@ -392,6 +443,8 @@ export function StateProvider({ children }: { children: ReactNode }) {
       logActivity(task.streamId, 'task_status_changed', taskId);
       addJournalEntry('task_cancelled', `${task.title}${reason ? ` — ${reason}` : ''}`, taskId, task.streamId, { reason });
       showToast(`Cancelled: ${task.title.slice(0, 40)}`, 'info');
+      // Sync to Supabase
+      setTimeout(() => syncTaskToSupabase(taskId), 0);
     }
   }, [state.tasks, logActivity, addJournalEntry, showToast]);
 
@@ -422,6 +475,8 @@ export function StateProvider({ children }: { children: ReactNode }) {
       logActivity(task.streamId, 'task_status_changed', taskId);
       addJournalEntry('task_unblocked', `Unblocked: ${task.title}`, taskId, task.streamId);
       showToast(`Unblocked: ${task.title.slice(0, 40)}`, 'success');
+      // Sync to Supabase
+      setTimeout(() => syncTaskToSupabase(taskId), 0);
     }
   }, [state.tasks, logActivity, addJournalEntry, showToast]);
 
@@ -520,6 +575,8 @@ export function StateProvider({ children }: { children: ReactNode }) {
     }));
     addJournalEntry('task_created', `Created: ${title}`, newTask.id, stream?.id);
     showToast(`Task added: ${title.slice(0, 40)}`, 'success');
+    // Sync new task to Supabase
+    syncTask(newTask as Task);
   }, [state.streams, addJournalEntry, showToast]);
 
   // Founder-created decision
@@ -551,6 +608,8 @@ export function StateProvider({ children }: { children: ReactNode }) {
     }));
     addJournalEntry('decision_created', `New decision: ${title}`);
     showToast(`Decision added: ${title.slice(0, 40)}`, 'success');
+    // Sync new decision to Supabase
+    syncDecision(newDecision as Decision);
   }, [addJournalEntry, showToast]);
 
   return (
